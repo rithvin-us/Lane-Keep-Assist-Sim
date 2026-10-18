@@ -96,7 +96,8 @@ LKA---Simulink-/
 ├── scripts/             build_lka_models, run_lka_mil, plot_lka_results, plot_lka_comparison,
 │                        integrate_lka_into_skeleton, run_baseline_simulation (legacy), evaluate_kpis (legacy)
 │                        run_lka_on_video, run_lka_on_test_videos, run_lka_pick_video, watch_lka_videos, run_lka_checks
-├── tools/               dashboard server, ONNX export / parity tools, run_lka.bat / run_lka.sh (matlab -batch)
+├── tools/               dashboard server, ONNX export / parity tools, run_lka.bat / run_lka.sh (matlab -batch),
+│                        finetune/ (college frames + labels → UFLDv2 training data, docs/team_actions.md item 8)
 ├── tests/               unit_tests/test_lka_core.m, scenario_tests/test_lka_mil_scenarios.m (+ legacy tests)
 ├── docs/                lka_controller.md (design), mathematical_models.md, references/
 ├── results/mil/         figures and lka_mil_kpis.csv from run_lka_mil
