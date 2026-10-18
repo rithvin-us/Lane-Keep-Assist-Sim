@@ -87,6 +87,19 @@ function testTightProfileKeepsStraightAndGentleLanes(testCase)
     end
 end
 
+function testAdaptiveRangeStopsAtMinRange(testCase)
+    % A zigzag no 5 m cubic can follow, starting at 3.05 m: (3.05 + 5) - 3.05 > 5 in
+    % double precision, which kept the first version of the range loop running forever.
+    F = testCase.TestData.Tight.Vision.Fit;
+    x = (3.05:0.05:15)';
+    y = 1 + 0.5 * sin(2 * pi * x / 3);
+    t0 = tic;
+    [b, ok] = lka_fit_boundary([x y 0.9 * ones(size(x))], F);
+    testCase.verifyLessThan(toc(t0), 5);
+    testCase.verifyTrue(ok);
+    testCase.verifyEqual(b.ViewRange, 3.05 + F.MinRange, 'AbsTol', 0.06);
+end
+
 function testTraceLineFollowsPaint(testCase)
     [bev, cam, lineY] = lka_synthetic_bev(testCase.TestData.SBend, 2.0);
     [xs, ys] = lka_trace_line(bev, cam, lineY(cam.XNear, 1));

@@ -38,8 +38,12 @@ function [b, ok] = lka_fit_boundary(pts, F)
 
     if isfield(F, 'AdaptiveRange') && F.AdaptiveRange
         xEnd = max(x);
-        while upperResidual(x, r, w0) > F.MaxResidual && xEnd - min(x) > F.MinRange
-            xEnd = max(min(x) + F.MinRange, xEnd - 1);
+        while upperResidual(x, r, w0) > F.MaxResidual
+            xNew = max(min(x) + F.MinRange, xEnd - 1);
+            if xNew >= xEnd - 1e-6
+                break                  % shortest range reached (a "> MinRange" test can stay
+            end                        % true by rounding, e.g. (3.05 + 5) - 3.05 > 5)
+            xEnd = xNew;
             keep = x <= xEnd;
             if nnz(keep) < F.MinPoints
                 break

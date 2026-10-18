@@ -596,8 +596,10 @@ function fit(pts, S) {
   };
   if (S.Adaptive) {
     let xEnd = xmax;
-    while (binP90(P, f.res) > 0.04 && xEnd - xmin > 5) {
-      xEnd = Math.max(xmin + 5, xEnd - 1);
+    while (binP90(P, f.res) > 0.04) {
+      const xNew = Math.max(xmin + 5, xEnd - 1);
+      if (xNew >= xEnd - 1e-6) break;   // shortest range reached (rounding can keep "> 5" true)
+      xEnd = xNew;
       const keep = P.filter(q => q[0] <= xEnd);
       if (keep.length < 60) break;
       P = keep; xmax = Math.max(...P.map(q => q[0])); d = deg(xmax - xmin); f = robust(P, d);
