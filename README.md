@@ -67,6 +67,7 @@ lane-fit and steering labs, code reader, command builder, quiz, glossary) and
 `docs/LKA_Team_Guide.html`.
 What the team still has to measure, record, train or install:
 **[`docs/team_actions.md`](docs/team_actions.md)**.
+The stages after that, with owners and pass/fail gates: **[`docs/next_plan.md`](docs/next_plan.md)**.
 
 ---
 
