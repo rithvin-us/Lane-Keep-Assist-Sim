@@ -1,5 +1,12 @@
 # Mathematical Models: Vehicle Dynamics & Steering Control
 
+> **Status (2026-10-16): background theory, partly out of date.** The code has moved on: the
+> Stanley law now damps the yaw rate relative to the path curvature (`stanley_steer_control.m`,
+> `lka_stanley_2025.m`), pure pursuit uses a speed lookup table for the look-ahead and the curvature
+> form κ = 2·y_T/(L_d² + y_T²) (`lka_pure_pursuit.m`), and the test-bench vehicle uses saturating
+> tyres with a kinematic blend below 3 m/s (`lka_single_track_dynamics.m`). The current equations and
+> numbers are in [`lka_controller.md`](lka_controller.md) §2.
+
 This document outlines the theoretical models used for the Lane Keeping Assist (LKA) system.
 
 ---

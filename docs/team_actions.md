@@ -1,4 +1,4 @@
-# What the team still has to do (LKA, status 2026-10-16)
+# What the team still has to do (LKA, status 2026-10-18)
 
 The software side is complete for the virtual round: controller, simulation benches, camera
 lane detection (team CNN on the GPU), track-video tool and live dashboard are in `main` and
@@ -9,6 +9,24 @@ what to hand back.
 ---
 
 ## P1 — before the virtual round
+
+### 0. Re-run the college videos with the tight-track fix (new, 2026-10-16)
+
+**Why.** The lane in the annotated college videos stayed almost straight while the painted lane
+bends at R 3-8 m: every camera setting was tuned for the official track (`docs/lka_controller.md`
+§9.1). The fix is in the code, checked with a Python replica of the camera chain and in Octave, but
+it has not run in MATLAB with the team CNN yet.
+
+**How.**
+1. `run_lka_checks()`: all unit tests must pass, including the new `test_vision_tight_track`.
+2. `run_lka_on_test_videos()` (the tight profile is the default now).
+3. Open `test_res/summary.csv`: `StraightAlarm` must be false and `ShapeErrorP90_m` below 0.25 m
+   for every clip. Watch each `lka_video_annotated.mp4`: the green and blue lines must sit on the
+   painted lines through the bends.
+4. Check the official track is unchanged: `run_lka_mil(Scenarios={'S1_Nominal'}, Controllers=1)` and
+   `run_lka_vision(Detectors={'cnn'})` must match `docs/lka_controller.md` §6 and §8.
+
+**Give back.** The new `test_res/summary.csv` and the `results/checks/lka_checks_*.md` report.
 
 ### 1. Measure the camera that films the track videos
 
@@ -48,7 +66,13 @@ section, one wide point), measure with a tape:
 - the width of one painted line [m].
 Take one photo of each place with the tape visible.
 
-**Give back.** The numbers in `vids/track.txt`. Use them as `LaneWidth=<m>` in the video tool.
+Also measure the **tightest bend** (the tight-track profile is set for radius 3 m): stretch the
+tape straight across the inside line of the bend like a bow string, length `c` [m] (about 3 m),
+and measure the largest gap `s` [m] between the tape and the painted line. Radius
+`R = c^2 / (8 s) + s / 2`.
+
+**Give back.** The numbers in `vids/track.txt`. Use them as `LaneWidth=<m>` and
+`MinRadius=<R>` in the video tool (`run_lka_on_test_videos(LaneWidth=2.0, MinRadius=3)`).
 For a live test on that track, set `lkaLaneWidth = <m>;` before `run('config/startup.m')`.
 
 ### 3. Record a speed reference together with a video
@@ -116,8 +140,9 @@ one. A person catches wrong lines in seconds.
 `test_res/<clip>/lka_video_annotated.mp4`. The green area must be the lane the vehicle is
 driving in, green / blue lines on the painted lines, magenta = where the LKA would steer.
 
-**Give back.** A list `clip, time [s], what is wrong` (for example "12.23.28, 18.0 s, left line
-on the kerb"). These frames are also the first ones to label in item 8.
+**Give back.** `vids/wrong_frames.csv` with the header `video,time_s,what` (for example
+`WhatsApp Video 2026-10-16 at 12.23.28,18.0,left line on the kerb`). These frames are also the
+first ones to label in item 8 (`extract_frames.py --times` picks them up).
 
 ---
 
@@ -130,23 +155,68 @@ on the kerb"). These frames are also the first ones to label in item 8.
 the frames). MATLAB runs the model exactly like Colab (checked to 0.06 px), so the only way to
 make it see this track is more training data. Code-side tricks were tested and did not help.
 
+**Two traps in the UFLDv2 code** (both avoided by `tools/finetune/`):
+- `scripts/convert_tusimple.py` sorts the lines into the 4 slots by the sign of their slope in
+  the image. In a sharp left bend the ego-left line leans like a right-hand line, so it is
+  trained as ego-right (and the real ego-right as right-right). `labels_to_ufld.py` takes the
+  slot from the label instead (checked: same cache as the UFLDv2 converter on straight lanes,
+  correct slots in the bend where the UFLDv2 converter swaps them).
+- `train.py --finetune` loads only the ResNet backbone (keys containing `model`); the lane head
+  would start from random. `--resume` loads the whole network, but only from a file named
+  `epNNN.pth`; step 4 makes one.
+
 **How.**
-1. Extract about 300-500 frames from the college videos (every 0.5 s; include the frames from
-   item 7), resize to 1280x720.
-2. Label every lane line as a polyline (CVAT or labelme), ordered left to right: left-left,
-   ego-left, ego-right, right-right (the same 4 slots the model outputs).
-3. Convert the labels to the TuSimple JSON format (`h_samples` rows 160...710 every 10 px).
-4. In the team Colab, continue training from `model_best.pth` with a small learning rate
-   (about 1/10 of the original) for a few epochs. Mix in TuSimple images so it does not forget
-   highways. Hold back 20 % of the college frames for validation.
-5. Export: `python tools/export_ufld_onnx.py <new.pth> team_cnn.onnx`.
-6. Put the new `team_cnn.onnx` on the team Drive and in `models/perception/` (the file is too
-   big for GitHub). Delete `models/perception/team_cnn_dlnetwork.mat` so MATLAB re-imports it.
-7. Check: `runtests('tests/unit_tests/test_ufld_reference_parity.m')`,
+1. **Frames.** Original-quality videos (item 4), then
+   `python tools/finetune/extract_frames.py vids/*.mp4 --out college_frames --times vids/wrong_frames.csv`.
+   One frame every 0.5 s at 1280x720; 300-500 frames are 2.5-4 minutes of driving. Include
+   the snake section in both directions, straights, shadows, and frames with no line in view.
+2. **Label** in CVAT (free, cvat.ai): new task from the `college_frames` images, labels `LL`,
+   `L`, `R`, `RR` (polyline). `L` / `R` are the two lines of the lane the vehicle drives in, `LL`
+   / `RR` the next lines out (often none on the college track). Draw each line from the bottom
+   of the image up to where it is still visible; follow the paint around the bend. Leave a
+   frame empty if no line is painted. Tip: use *track* mode, draw every 5th frame and let CVAT
+   interpolate, then correct. Export **CVAT for images 1.1** (`annotations.xml`). About 1 hour
+   per 100 frames.
+3. **Convert** (Colab, after the TuSimple data is set up as for the original training; copy
+   `tools/finetune/` to the Drive):
+   ```
+   !python /content/drive/MyDrive/lka/finetune/labels_to_ufld.py \
+       --frames /content/drive/MyDrive/lka/college_frames \
+       --labels /content/drive/MyDrive/lka/annotations.xml \
+       --root /content/tusimple --preview /content/drive/MyDrive/lka/preview
+   ```
+   Read the warnings (swapped labels, lines that turn back) and look at a few `preview` images:
+   magenta / red / green / cyan dots = LL / L / R / RR. 20 % of the college frames are held back
+   (in 5 s blocks) and become the test set, so training keeps the checkpoint that is best on the
+   college track; each training frame is listed several times so the college frames are about a
+   quarter of each epoch.
+4. **Baseline and start checkpoint.** First score the current model on the college test set:
+   `!python test.py configs/tusimple_res18.py --data_root /content/tusimple --test_model <model_best.pth> --test_work_dir /content/tmp`.
+   Then:
+   ```
+   import torch, os
+   ck = torch.load('<model_best.pth>', map_location='cpu')
+   os.makedirs('/content/ft_init', exist_ok=True)
+   torch.save({'model': ck['model']}, '/content/ft_init/ep000.pth')
+   ```
+5. **Train** (1/10 of the original learning rate, 20 epochs; with `--resume` the warm-up is
+   skipped, which is fine at this rate; about 30-60 min on a T4):
+   ```
+   !python train.py configs/tusimple_res18.py --data_root /content/tusimple \
+       --resume /content/ft_init/ep000.pth --epoch 21 --learning_rate 0.005 --steps 12 17 \
+       --log_path /content/drive/MyDrive/lane_logs/college_ft
+   ```
+6. **Highway check.** Re-run step 3 with `--eval tusimple`, then `test.py` (as in step 4) with
+   the new `model_best.pth`: TuSimple accuracy must stay above about 0.95 (it was 0.96).
+7. **Export**: `python tools/export_ufld_onnx.py <new.pth> team_cnn.onnx`. Put the new
+   `team_cnn.onnx` on the team Drive and in `models/perception/` (the file is too big for
+   GitHub). Delete `models/perception/team_cnn_dlnetwork.mat` so MATLAB re-imports it.
+8. **Check in MATLAB**: `runtests('tests/unit_tests/test_ufld_reference_parity.m')`,
    `run_lka_on_test_videos()`, `run_lka_vision(Detectors={'cnn'})` (S1 must stay ≤ 0.05 m).
 
-**Give back.** The new `.pth` and `.onnx` (Drive), the validation accuracy from Colab, and the
-before / after `test_res/summary.csv`.
+**Give back.** The new `.pth` and `.onnx` (Drive); the college-test accuracy before (step 4) and
+after (step 5) and the TuSimple accuracy after (step 6); the before / after
+`test_res/summary.csv`. Keep `annotations.xml`: every new video adds frames to the same set.
 
 ---
 

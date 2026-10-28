@@ -97,6 +97,9 @@ function testRunOnSyntheticVideo(testCase)
     % car 0.3 m left of the centre -> lane centre 0.3 m to its right -> steer right (< 0)
     testCase.verifyEqual(T.LaneCentreOffset_m(end), -0.3, 'AbsTol', 0.08);
     testCase.verifyLessThan(T.SteerCmd_deg(end), 0);
+    % straight-lane alarm columns: the fitted lines lie on the painted lines
+    testCase.verifyLessThan(median([T.LeftShapeError_m; T.RightShapeError_m], 'omitnan'), 0.05);
+    testCase.verifyGreaterThan(median(T.LeftViewRange_m), 10);
 end
 
 % ------------------------------------------------------------------ helpers

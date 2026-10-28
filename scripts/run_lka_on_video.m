@@ -34,6 +34,16 @@ function out = run_lka_on_video(videoFile, options)
 %   UseGpu     run the network, bird's-eye warps and odometry on the GPU (default true)
 %   Batch      frames per network call (default 0 = 8 on the GPU, 1 otherwise)
 %   Monitor    publish live telemetry for the dashboard (lka_monitor_publish, default true)
+%   TrackProfile  'tight' (default: painted test lane with bends down to MinRadius, e.g. the
+%              college snake track) | 'official' (aBaja LKA track, R 127 m+): see
+%              lka_set_track_profile. With 'official' a 3-8 m radius bend comes out
+%              almost straight.
+%   MinRadius  tightest bend radius of the track [m] for TrackProfile='tight' (default 3)
+%   CalibrationFrames  'spread' (default: AutoFrames frames over the whole clip, so the
+%              bends average out) | 'start' (the first AutoFrames frames at 20 Hz, for a
+%              clip that starts on a straight)
+%   ShapeCheck measure each frame how far the fitted lines are from the painted lines
+%              (lka_lane_shape_error, default true): the straight-lane alarm
 % Output: struct with Table (one row per processed frame, also lka_video_results.csv),
 %   Camera (used / estimated), Replay (controller outputs). Figures lka_video_overview.png
 %   (signals over time) and lka_video_path.png (dead-reckoned path with the detected lines).
@@ -57,11 +67,17 @@ function out = run_lka_on_video(videoFile, options)
         options.UseGpu (1,1) logical = true
         options.Batch (1,1) double = 0
         options.Monitor (1,1) logical = true
+        options.TrackProfile char {mustBeMember(options.TrackProfile, {'tight', 'official'})} = 'tight'
+        options.MinRadius (1,1) double {mustBePositive} = 3
+        options.CalibrationFrames char {mustBeMember(options.CalibrationFrames, {'spread', 'start'})} = 'spread'
+        options.ShapeCheck (1,1) logical = true
     end
     root = fileparts(fileparts(mfilename('fullpath')));
     run(fullfile(root, 'config', 'startup.m'));
     evalin('base', 'lkaProfile = ''baja''; lka_controller_params; create_lka_buses;');
     LKA = evalin('base', 'LKA');
+    Vcal = LKA.Vision;                 % camera auto-calibration keeps the long default fit
+    LKA = lka_set_track_profile(LKA, options.TrackProfile, MinRadius=options.MinRadius);
     V = LKA.Vision;
     [~, name] = fileparts(videoFile);
     if isempty(options.OutDir)
@@ -76,7 +92,7 @@ function out = run_lka_on_video(videoFile, options)
     end
     V.Detector = options.Detector;
     det = lka_detector_create(V);
-    fprintf('[LKA video] %s | detector %s\n', videoFile, det.Name);
+    fprintf('[LKA video] %s | detector %s | track profile %s\n', videoFile, det.Name, options.TrackProfile);
 
     % ---------------- frames at (up to) the LKA rate
     vr = VideoReader(videoFile);
@@ -94,20 +110,16 @@ function out = run_lka_on_video(videoFile, options)
         f = (w / 2) / tand(options.HFovDeg / 2);
         C0.ImageSize = [h w]; C0.PrincipalPoint = [w h] / 2; C0.FocalLength = [f f];
         C0.Height = options.CameraHeight;
-        probs = {det.Detect(first.img)};
-        for k = 2:options.AutoFrames
-            fr = readNext();
-            if isempty(fr.img), break; end
-            probs{end + 1} = det.Detect(fr.img); %#ok<AGROW>
-        end
-        [C, cal] = lka_autocalibrate_camera(probs, C0, V, LaneWidth=options.LaneWidth);
+        imgs = calibrationFrames(videoFile, options.StartTime, tEnd, options.AutoFrames, LKA.Ts, ...
+            options.StereoEye, strcmp(options.CalibrationFrames, 'spread'));
+        probs = cellfun(@(im) det.Detect(fitToCamera(im, C0)), imgs, 'UniformOutput', false);
+        Vcal.Ts = LKA.Ts;
+        [C, cal] = lka_autocalibrate_camera(probs, C0, Vcal, LaneWidth=options.LaneWidth);
         W = cal.LaneWidth;                       % lane width for the search and plausibility gates
         LKA = lka_set_lane_width(LKA, W, MinFactor=0.5, MaxFactor=2);   % lanes widen in bends
         V.Track = LKA.Vision.Track;
-        fprintf('[LKA video] auto-calibrated camera: pitch %.1f deg, height %.2f m (f %.0f px), lane width %.2f m\n', ...
-            C.PitchDeg, C.Height, C.FocalLength(1), W);
-        readNext = makeReader(VideoReader(videoFile), options.StartTime, tEnd, LKA.Ts, options.StereoEye);
-        first = readNext();
+        fprintf('[LKA video] auto-calibrated camera: pitch %.1f deg, height %.2f m (f %.0f px), lane width %.2f m (%d frames, %s)\n', ...
+            C.PitchDeg, C.Height, C.FocalLength(1), W, numel(imgs), options.CalibrationFrames);
     elseif isstruct(options.Camera)
         C = options.Camera;
     else
@@ -133,7 +145,7 @@ function out = run_lka_on_video(videoFile, options)
         shortName, nb, ternary(useGpu, 'GPU', 'CPU'));
     state = lka_vision_state_init(V);
     tf = zeros(0, 1); sensors = struct('Left', {}, 'Right', {}, 'FrameValid', {});
-    previews = {}; overlays = {}; odo = zeros(0, 4); stageMs = zeros(0, 3);
+    previews = {}; overlays = {}; odo = zeros(0, 4); stageMs = zeros(0, 3); shapeErr = zeros(0, 2);
     useOdometry = isempty(options.Speed) && isempty(options.SpeedLog);
     gPrev = [];
     nTotal = max(1, round((tEnd - max(options.StartTime, first.t)) / LKA.Ts) + 1);
@@ -189,6 +201,10 @@ function out = run_lka_on_video(videoFile, options)
         for j = 1:m
             [s, state] = lka_vision_lane_step(bev(:, :, :, j), cam, V, state, LKA.Ts);
             sensors(end + 1, 1) = s; %#ok<AGROW>
+            shapeErr(end + 1, :) = [NaN NaN]; %#ok<AGROW>
+            if options.ShapeCheck
+                shapeErr(end, :) = lka_lane_shape_error(bev(:, :, :, j), cam, s);
+            end
             previews{end + 1, 1} = single(imresize(max(bev(:, :, :, j), [], 3), V.PreviewSize)); %#ok<AGROW>
             overlays{end + 1, 1} = struct('Lanes', {info(j).Lanes}, 'Ids', info(j).Ids); %#ok<AGROW>
         end
@@ -257,14 +273,17 @@ function out = run_lka_on_video(videoFile, options)
         rad2deg(back(rep.SteerCmd)), back(rep.TurnRadius), back(rep.State), ...
         speed, 3.6 * speed, rad2deg(yawRate), rad2deg(cumtrapz(tf, yawRate)), odo(:, 4), ...
         stageMs(:, 1), stageMs(:, 2), stageMs(:, 3), ...
+        [Ls.ViewRange]', [Rs.ViewRange]', shapeErr(:, 1), shapeErr(:, 2), ...
         'VariableNames', {'Time_s', 'LeftOffset_m', 'LeftHeading_deg', 'LeftCurvature_1pm', 'LeftStrength', ...
         'RightOffset_m', 'RightHeading_deg', 'RightCurvature_1pm', 'RightStrength', ...
         'LaneCentreOffset_m', 'HeadingError_deg', 'RoadCurvature_1pm', 'RoadRadius_m', ...
         'SteerCmd_deg', 'TurnRadius_m', 'LkaState', 'Speed_mps', 'Speed_kmh', 'YawRate_degps', ...
-        'YawAngle_deg', 'OdometryPeak', 'Detect_ms', 'BevOdometry_ms', 'LaneFit_ms'});
+        'YawAngle_deg', 'OdometryPeak', 'Detect_ms', 'BevOdometry_ms', 'LaneFit_ms', ...
+        'LeftViewRange_m', 'RightViewRange_m', 'LeftShapeError_m', 'RightShapeError_m'});
     writetable(T, fullfile(options.OutDir, 'lka_video_results.csv'));
     out = struct('Table', T, 'Camera', C, 'Replay', rep, 'SpeedSource', source, 'Detector', det.Name, ...
-        'LaneWidth', V.Track.WidthInit);
+        'LaneWidth', V.Track.WidthInit, 'TrackProfile', options.TrackProfile);
+    reportShape(shapeErr, options.TrackProfile);
     save(fullfile(options.OutDir, 'lka_video_results.mat'), 'out');
     plotOverview(T, source, det.Name, fullfile(options.OutDir, 'lka_video_overview.png'));
     plotPath(T, cam.XNear, source, fullfile(options.OutDir, 'lka_video_path.png'));
@@ -273,7 +292,9 @@ function out = run_lka_on_video(videoFile, options)
     kCmd = 1 ./ T.TurnRadius_m;              % arc drawn = the HUD turning radius (after rate limit)
     if options.Video
         vw = VideoWriter(fullfile(options.OutDir, 'lka_video_annotated.mp4'), 'MPEG-4');
-        vw.FrameRate = round(1 / median(dt));
+        % frames are kept at (up to) the 20 Hz grid, so the source spacing alternates on a
+        % 30 fps clip (33 / 67 ms): the median gap gave 17 fps and an 18 % slow video
+        vw.FrameRate = max(1, (n - 1) / max(tf(end) - tf(1), LKA.Ts));
         vw.Quality = 90;
         open(vw);
         closeVideo = onCleanup(@() close(vw));   % finalise the MP4 even when a frame fails
@@ -356,6 +377,52 @@ function readNext = makeReader(vr, tStart, tEnd, Ts, eye)
             end
         end
     end
+end
+
+function imgs = calibrationFrames(videoFile, tStart, tEnd, n, Ts, eye, spread)
+% Frames for the camera auto-calibration: n frames spread evenly over [tStart, tEnd]
+% (bends to the left and right average out) or the first n frames at Ts.
+    vr = VideoReader(videoFile);
+    if spread
+        ts = linspace(tStart, tEnd, n + 2);
+        ts = ts(2:end - 1);
+    else
+        ts = tStart + (0:n - 1) * Ts;
+    end
+    imgs = {};
+    for t = ts(ts < vr.Duration)
+        vr.CurrentTime = t;
+        if hasFrame(vr)
+            imgs{end + 1} = cropEye(readFrame(vr), eye); %#ok<AGROW>
+        end
+    end
+    if isempty(imgs)
+        error('lka:video:empty', 'No frames for the camera calibration between %.1f and %.1f s.', tStart, tEnd);
+    end
+end
+
+function reportShape(shapeErr, profile)
+% Straight-lane alarm: the fitted lines must stay on the paint (lka_lane_shape_error).
+    e = shapeErr(isfinite(shapeErr));
+    if isempty(e)
+        return
+    end
+    p90 = sortedPercentile(e, 0.9);
+    fprintf('[LKA video] fitted line vs painted line: median %.2f m, 90 %% of lines within %.2f m\n', median(e), p90);
+    if p90 > 0.25
+        hint = '';
+        if strcmp(profile, 'official')
+            hint = ' Try TrackProfile=''tight''.';
+        end
+        warning('lka:video:laneShape', ['The fitted lane lines are more than %.2f m off the painted lines in ' ...
+            '10 %% of the frames: the lane model does not follow this track (for example a bend tighter ' ...
+            'than MinRadius).%s'], p90, hint);
+    end
+end
+
+function v = sortedPercentile(x, p)
+    x = sort(x(:));
+    v = x(max(1, ceil(p * numel(x))));
 end
 
 function img = cropEye(img, eye)

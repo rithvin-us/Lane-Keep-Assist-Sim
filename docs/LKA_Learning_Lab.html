@@ -1,0 +1,1040 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>LKA Learning Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a highway-sign header band with tabs; one lab per tab; asphalt canvases keep one look in both themes. */
+:root {
+  --bg: #f3f5f4;
+  --panel: #ffffff;
+  --panel-2: #eaedeb;
+  --ink: #15191c;
+  --muted: #535b62;
+  --rule: #d6dbd8;
+  --accent: #b77900;          /* road-marking amber */
+  --accent-ink: #1c1400;
+  --accent-wash: #f6e6c2;
+  --sign: #1f5e47;            /* direction-sign green */
+  --sign-ink: #f4f7f5;
+  --good: #1d7a43;
+  --bad: #b3392b;
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --grid: #e3e7e5;
+  --code-bg: #eef1ef;
+  --font-display: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --font-body: "Barlow", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111416; --panel: #191d20; --panel-2: #22272b; --ink: #ebeeec; --muted: #a6aeb3; --rule: #2e3438;
+    --accent: #e3a42c; --accent-ink: #1c1400; --accent-wash: #3a2f17; --sign: #2f7d61; --sign-ink: #f4f7f5;
+    --good: #4cc27c; --bad: #ef7a6a; --series-1: #3987e5; --series-2: #d95926; --grid: #262c30; --code-bg: #1f2427;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111416; --panel: #191d20; --panel-2: #22272b; --ink: #ebeeec; --muted: #a6aeb3; --rule: #2e3438;
+  --accent: #e3a42c; --accent-ink: #1c1400; --accent-wash: #3a2f17; --sign: #2f7d61; --sign-ink: #f4f7f5;
+  --good: #4cc27c; --bad: #ef7a6a; --series-1: #3987e5; --series-2: #d95926; --grid: #262c30; --code-bg: #1f2427;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.5; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--sign); }
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; line-height: 1.15; }
+h2 { font-size: 1.9rem; font-weight: 700; }
+h3 { font-size: 1.3rem; font-weight: 600; }
+p { margin: 0; max-width: 68ch; }
+a { color: var(--sign); text-underline-offset: 2px; }
+:root:not([data-theme="light"]) a { color: inherit; }
+code, pre, .mono { font-family: var(--font-mono); font-size: 0.86em; }
+code { background: var(--code-bg); padding: 0.05em 0.35em; border-radius: 4px; }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.band { background: var(--sign); color: var(--sign-ink); position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; }
+.band-inner, .wrap { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); max-width: 1180px; margin: 0 auto; }
+.band-inner { padding-block: 10px 0; display: flex; flex-direction: column; gap: 6px; }
+.brand { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.brand h1 { font-size: 1.6rem; font-weight: 700; letter-spacing: 0.02em; }
+.brand .sub { font-size: 0.9rem; opacity: 0.85; }
+.tabs { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: thin; }
+.tab { background: none; border: 0; color: var(--sign-ink); opacity: 0.8; padding: 8px 12px 10px; font-family: var(--font-display); font-size: 1.05rem; font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase; cursor: pointer; border-bottom: 3px solid transparent; white-space: nowrap; }
+.tab:hover { opacity: 1; }
+.tab[aria-selected="true"] { opacity: 1; border-bottom-color: var(--accent); }
+
+main.wrap { padding-block: 28px 64px; }
+section.view { display: flex; flex-direction: column; gap: 22px; }
+.lead { font-size: 1.12rem; color: var(--muted); max-width: 70ch; }
+.eyebrow { font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.85rem; color: var(--muted); font-weight: 600; }
+.card { background: var(--panel); border: 1px solid var(--rule); border-radius: 10px; padding: 18px; min-width: 0; }
+.grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+.stack { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.muted { color: var(--muted); }
+.small { font-size: 0.88rem; }
+.note { border-left: 4px solid var(--accent); background: var(--accent-wash); padding: 10px 14px; border-radius: 0 8px 8px 0; max-width: 78ch; }
+
+/* system map */
+.flow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.chip { border: 1px solid var(--rule); background: var(--panel); border-radius: 999px; padding: 6px 12px; cursor: pointer; font-weight: 500; }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.chip.bug { border-color: var(--accent); border-width: 2px; }
+.arrow { color: var(--muted); }
+.half-label { font-family: var(--font-display); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.85rem; color: var(--muted); width: 100%; margin-top: 6px; }
+#mapInfo { min-height: 120px; }
+
+/* labs */
+.lab { display: grid; grid-template-columns: minmax(250px, 300px) minmax(0, 1fr) minmax(220px, 280px); gap: 16px; align-items: start; }
+@media (max-width: 980px) { .lab { grid-template-columns: 1fr; } }
+.ctl { display: flex; flex-direction: column; gap: 4px; }
+.ctl label { display: flex; justify-content: space-between; gap: 8px; font-size: 0.92rem; }
+.ctl output { font-family: var(--font-mono); font-size: 0.85rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+input[type="range"] { width: 100%; accent-color: var(--accent); }
+.seg { display: inline-flex; border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; background: var(--panel); padding: 6px 12px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.check { display: flex; gap: 8px; align-items: center; font-size: 0.92rem; }
+canvas { width: 100%; height: auto; border-radius: 10px; display: block; background: #2c3034; }
+.readout { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; font-size: 0.92rem; }
+.readout dt { color: var(--muted); }
+.readout dd { margin: 0; font-family: var(--font-mono); font-variant-numeric: tabular-nums; text-align: right; }
+.pill { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 0.8rem; font-weight: 600; }
+.pill.good { background: color-mix(in srgb, var(--good) 18%, transparent); color: var(--good); }
+.pill.bad { background: color-mix(in srgb, var(--bad) 18%, transparent); color: var(--bad); }
+.key { display: inline-block; width: 18px; height: 0; border-top: 4px solid; vertical-align: middle; margin-right: 6px; border-radius: 2px; }
+.btn { border: 1px solid var(--rule); background: var(--panel); border-radius: 8px; padding: 6px 12px; cursor: pointer; }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+
+/* tables */
+.table-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 0.93rem; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font-family: var(--font-display); font-weight: 600; letter-spacing: 0.03em; font-size: 1rem; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* code reader */
+.code { background: var(--code-bg); border-radius: 10px; padding: 10px 0; overflow-x: auto; }
+.code .ln { display: block; padding: 2px 14px; white-space: pre; cursor: pointer; border-left: 3px solid transparent; font-family: var(--font-mono); font-size: 0.84rem; }
+.code .ln:hover { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.code .ln[aria-current="true"] { border-left-color: var(--accent); background: color-mix(in srgb, var(--accent) 16%, transparent); }
+.code .ln.bug { border-left-color: var(--bad); }
+
+/* chart */
+.chart-svg text { fill: var(--muted); font-size: 12px; font-family: var(--font-body); }
+.chart-svg .lbl { fill: var(--ink); font-weight: 600; }
+.legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 0.9rem; }
+.tooltip { position: absolute; pointer-events: none; background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; padding: 8px 10px; font-size: 0.85rem; box-shadow: 0 4px 16px rgb(0 0 0 / 0.12); min-width: 150px; }
+.tooltip strong { font-variant-numeric: tabular-nums; }
+.chart-box { position: relative; }
+
+/* plan + quiz + glossary */
+.progress { height: 8px; background: var(--panel-2); border-radius: 999px; overflow: hidden; }
+.progress > div { height: 100%; background: var(--accent); width: 0; transition: width 0.3s; }
+.todo { display: flex; gap: 10px; align-items: flex-start; padding: 6px 0; border-bottom: 1px solid var(--rule); }
+.todo input { margin-top: 5px; accent-color: var(--accent); width: 18px; height: 18px; flex: none; }
+.todo.done span { color: var(--muted); text-decoration: line-through; }
+.q { display: flex; flex-direction: column; gap: 8px; }
+.q .opts { display: flex; flex-direction: column; gap: 6px; }
+.q button.opt { text-align: left; border: 1px solid var(--rule); background: var(--panel); border-radius: 8px; padding: 8px 12px; cursor: pointer; }
+.q button.opt.right { border-color: var(--good); background: color-mix(in srgb, var(--good) 14%, transparent); }
+.q button.opt.wrong { border-color: var(--bad); background: color-mix(in srgb, var(--bad) 12%, transparent); }
+.q .why { font-size: 0.92rem; color: var(--muted); }
+.gloss { display: grid; grid-template-columns: minmax(140px, 220px) 1fr; gap: 0; }
+.gloss div { padding: 7px 8px; border-bottom: 1px solid var(--rule); }
+.gloss .t { font-weight: 600; }
+@media (max-width: 560px) { .gloss { grid-template-columns: 1fr; } .gloss .t { border-bottom: 0; padding-bottom: 0; } }
+input[type="search"], input[type="text"], input[type="number"], select { border: 1px solid var(--rule); background: var(--panel); border-radius: 8px; padding: 7px 10px; width: 100%; }
+pre.cmd { background: var(--code-bg); border-radius: 10px; padding: 12px 14px; white-space: pre-wrap; word-break: break-word; margin: 0; }
+img.proof { width: 100%; border-radius: 10px; display: block; }
+footer { color: var(--muted); font-size: 0.85rem; padding-top: 24px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<header class="band">
+  <div class="band-inner">
+    <div class="brand"><h1>LKA Learning Lab</h1><span class="sub">aBaja 2026 lane keeping, explained by doing</span></div>
+    <nav class="tabs" role="tablist" aria-label="Sections">
+      <button class="tab" role="tab" data-view="start" id="tab-start">Start</button>
+      <button class="tab" role="tab" data-view="fitlab" id="tab-fitlab">Lane-fit lab</button>
+      <button class="tab" role="tab" data-view="steer" id="tab-steer">Steering lab</button>
+      <button class="tab" role="tab" data-view="code" id="tab-code">Read the code</button>
+      <button class="tab" role="tab" data-view="results" id="tab-results">The fix</button>
+      <button class="tab" role="tab" data-view="run" id="tab-run">Run it</button>
+      <button class="tab" role="tab" data-view="plan" id="tab-plan">Learning plan</button>
+      <button class="tab" role="tab" data-view="quiz" id="tab-quiz">Quiz</button>
+      <button class="tab" role="tab" data-view="words" id="tab-words">Words</button>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+<!-- ======================================================== START -->
+<section class="view" id="start" role="tabpanel" aria-labelledby="tab-start">
+  <div class="stack">
+    <span class="eyebrow">Start here</span>
+    <h2>A camera finds two painted lines; the software keeps the car between them</h2>
+    <p class="lead">Lane Keeping Assist (LKA) for the aBaja 2026 Baja runs 20 times a second: find the lines, decide the steering, limit it, send it. Click any step below to see what it does, in plain words, and which file does it.</p>
+  </div>
+  <div class="card stack">
+    <div class="flow" id="map" aria-label="System map">
+      <span class="half-label">1 · See the lines (src/vision)</span>
+    </div>
+    <div id="mapInfo" class="stack" aria-live="polite"></div>
+  </div>
+  <div class="grid-3">
+    <div class="card stack"><h3>New to all of this?</h3><p>Open the <b>Lane-fit lab</b> and drag the sliders. In two minutes you will see why the college lane came out straight.</p><button class="btn primary" data-goto="fitlab">Open the lab</button></div>
+    <div class="card stack"><h3>Want the theory?</h3><p>The <b>Steering lab</b> turns pure pursuit, curvature and turning radius into something you can move with a slider.</p><button class="btn" data-goto="steer">Open the steering lab</button></div>
+    <div class="card stack"><h3>Need to run something?</h3><p><b>Run it</b> builds the exact MATLAB command for your video, ready to copy.</p><button class="btn" data-goto="run">Build a command</button></div>
+  </div>
+  <p class="note">The full written guide (component breakdown, flaws, learning plan, glossary) is the team document <a href="https://claude.ai/code/artifact/490e9e26-98b8-4292-abdf-9b7020e6fc4a" target="_blank" rel="noopener">LKA Simulink Project Guide</a>. The code fix is on branch <code>ccr-586dff79-exyk2l</code> of the repository.</p>
+</section>
+
+<!-- ======================================================== FIT LAB -->
+<section class="view" id="fitlab" role="tabpanel" aria-labelledby="tab-fitlab" hidden>
+  <div class="stack">
+    <span class="eyebrow">Lane-fit lab · the straight-line problem, live</span>
+    <h2>Watch one curve try to trace a snake lane</h2>
+    <p class="lead">This is the real search-and-fit logic from <code>lka_search_boundary.m</code> and <code>lka_fit_boundary.m</code>, rewritten in the browser. White = painted lines. Orange = today's official-track settings. Blue = the new tight-track settings. Start with the sample, then make the bends tighter.</p>
+  </div>
+  <div class="lab">
+    <div class="card stack" id="fitControls">
+      <div class="ctl"><label for="fA">Bend size (sideways swing) <output id="fAo"></output></label><input type="range" id="fA" min="0" max="1.2" step="0.05" value="0.8"></div>
+      <div class="ctl"><label for="fL">Bend length (one full S) <output id="fLo"></output></label><input type="range" id="fL" min="6" max="60" step="1" value="12"></div>
+      <div class="ctl"><label for="fP">Where the S starts <output id="fPo"></output></label><input type="range" id="fP" min="0" max="345" step="15" value="0"></div>
+      <div class="ctl"><label for="fW">Lane width <output id="fWo"></output></label><input type="range" id="fW" min="1.6" max="3.6" step="0.1" value="2.0"></div>
+      <div class="ctl"><label for="fN">First road the camera sees <output id="fNo"></output></label><input type="range" id="fN" min="3" max="7" step="0.25" value="4.5"></div>
+      <div class="ctl"><label for="fF">Furthest road used <output id="fFo"></output></label><input type="range" id="fF" min="12" max="30" step="1" value="20"></div>
+      <label class="check"><input type="checkbox" id="fNoise" checked> Camera noise and stray paint</label>
+      <label class="check"><input type="checkbox" id="fShowO" checked> <span><span class="key" style="border-color:#f39a62"></span>Official settings</span></label>
+      <label class="check"><input type="checkbox" id="fShowT" checked> <span><span class="key" style="border-color:#7fb4f0"></span>Tight-track settings</span></label>
+      <div class="row"><button class="btn" id="fSample">College sample</button><button class="btn" id="fGentle">Official track</button></div>
+    </div>
+    <div class="stack">
+      <canvas id="fitCanvas" width="560" height="640" aria-label="Top view of the lane with the fitted lines"></canvas>
+      <p class="small muted">Top view, car at the bottom driving up. Sideways distances are drawn 2× larger so small bends are visible. The shaded band is the road the camera cannot see.</p>
+    </div>
+    <div class="card stack" aria-live="polite">
+      <h3>What each setting found</h3>
+      <div id="fitOut" class="stack"></div>
+      <p class="small muted">Error = the largest distance between the fitted line and the paint, over the range the fit covers. Above 0.25 m the new straight-lane alarm would fire.</p>
+    </div>
+  </div>
+  <div class="card stack">
+    <h3>Try these</h3>
+    <ol class="stack" style="margin:0;padding-left:20px">
+      <li>Press <b>Official track</b>: both settings agree, because one curve can follow a gentle bend.</li>
+      <li>Press <b>College sample</b>: the orange lines cut straight across the S. That is exactly what the annotated videos showed.</li>
+      <li>Drag <b>Bend length</b> from 60 m down to 8 m and watch the orange error grow while blue stays small.</li>
+      <li>Move <b>Furthest road used</b> down to 12 m: the orange fit improves, because it has fewer bends to average. That is why the tight settings shorten the fitted range.</li>
+      <li>Drag <b>First road the camera sees</b> to 7 m: more of every bend is hidden. A better camera mount helps as much as code.</li>
+    </ol>
+  </div>
+</section>
+
+<!-- ======================================================== STEERING LAB -->
+<section class="view" id="steer" role="tabpanel" aria-labelledby="tab-steer" hidden>
+  <div class="stack">
+    <span class="eyebrow">Steering lab · pure pursuit and turning radius</span>
+    <h2>Aim at a point ahead, drive the circle that reaches it</h2>
+    <p class="lead">This is <code>lka_pure_pursuit.m</code> and <code>lka_curvature_to_steer.m</code>. Set where the lane is, and see the steering the LKA asks for, the circle it would drive, and whether the safety limits cut it.</p>
+  </div>
+  <div class="lab">
+    <div class="card stack">
+      <div class="ctl"><label for="sY">Lane centre is to the left by <output id="sYo"></output></label><input type="range" id="sY" min="-1.2" max="1.2" step="0.05" value="0.5"></div>
+      <div class="ctl"><label for="sH">Lane points left of the nose by <output id="sHo"></output></label><input type="range" id="sH" min="-20" max="20" step="1" value="0"></div>
+      <div class="ctl"><label for="sK">Road bend (curvature) <output id="sKo"></output></label><input type="range" id="sK" min="-0.3" max="0.3" step="0.005" value="0"></div>
+      <div class="ctl"><label for="sL">Look-ahead distance <output id="sLo"></output></label><input type="range" id="sL" min="2" max="12" step="0.25" value="4"></div>
+      <div class="ctl"><label for="sV">Speed <output id="sVo"></output></label><input type="range" id="sV" min="0.5" max="12" step="0.25" value="4"></div>
+    </div>
+    <div class="stack">
+      <canvas id="steerCanvas" width="520" height="560" aria-label="Top view of the car, lane centre and the commanded circle"></canvas>
+      <p class="small muted">Top view, equal scale, grid every 1 m. Yellow dashes: estimated lane centre. Dot: the look-ahead point. Blue: the circle pure pursuit asks for.</p>
+    </div>
+    <div class="card stack" aria-live="polite">
+      <h3>What the LKA commands</h3>
+      <dl class="readout" id="steerOut"></dl>
+      <p class="small muted">Formulas: target y<sub>T</sub> = y + ψ·L<sub>d</sub> + κ·L<sub>d</sub>²/2; curvature κ<sub>PP</sub> = 2·y<sub>T</sub> / (L<sub>d</sub>² + y<sub>T</sub>²); wheel angle δ = atan(κ·(L + K<sub>us</sub>·v²)) with L = 1.45 m.</p>
+    </div>
+  </div>
+  <div class="card stack">
+    <h3>Things to notice</h3>
+    <ul class="stack" style="margin:0;padding-left:20px">
+      <li>Longer look-ahead = gentler steering. Shorter = sharper, and above some speed it starts to swing (the S5 crooked-start story in the docs).</li>
+      <li>With the lane perfectly centred on a bend, steering is not zero: the bend itself is fed forward.</li>
+      <li>Push the speed up on a tight bend: the 3 m/s² sideways-push limit starts cutting the command.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ======================================================== CODE -->
+<section class="view" id="code" role="tabpanel" aria-labelledby="tab-code" hidden>
+  <div class="stack">
+    <span class="eyebrow">Read the code · click any line</span>
+    <h2>MATLAB, one line at a time</h2>
+    <p class="lead">Two real excerpts from the repository. Click a line to see what it means in plain English. Lines with a red edge are where the straight-lane problem started.</p>
+  </div>
+  <div class="row"><div class="seg" id="codePick"><button aria-pressed="true" data-snip="fit">lka_fit_boundary.m</button><button aria-pressed="false" data-snip="pp">lka_pure_pursuit.m</button></div></div>
+  <div class="grid-2">
+    <div class="code" id="codeBox"></div>
+    <div class="card stack" aria-live="polite"><span class="eyebrow">What this line does</span><div id="codeExplain"></div></div>
+  </div>
+</section>
+
+<!-- ======================================================== RESULTS -->
+<section class="view" id="results" role="tabpanel" aria-labelledby="tab-results" hidden>
+  <div class="stack">
+    <span class="eyebrow">The fix · measured on your three clips</span>
+    <h2>Tuned for 127 m bends, shown 3–8 m bends</h2>
+    <p class="lead">Every camera setting was tuned for the official track. Five of them pushed the snake lane towards a straight line. One switch, <code>lka_set_track_profile(LKA, 'tight')</code>, now changes all five; the official settings stay the default.</p>
+  </div>
+  <figure class="card stack" style="margin:0">
+    <img class="proof" src="images/college_track_before_after.jpg" alt="Four frames of the college clips. Red lines (current settings) cut straight across the bends; green lines (tight-track settings) follow the paint." width="1248" height="696">
+    <figcaption class="small muted">Red, the thicker line = current settings. Green = tight-track settings. Frames from clips 12.23.27, 12.23.28 and 12.23.27 (1); Python copy of the camera chain with the simple paint detector.</figcaption>
+  </figure>
+  <div class="card stack">
+    <div class="row" style="justify-content:space-between">
+      <h3>How far the fitted line is from the paint</h3>
+      <div class="seg" id="clipPick"><button aria-pressed="true" data-clip="0">12.23.27</button><button aria-pressed="false" data-clip="1">12.23.27 (1)</button><button aria-pressed="false" data-clip="2">12.23.28</button></div>
+    </div>
+    <p class="small muted">Worst 10 % of frames, at each distance past the first road row the camera sees. Lower is better.</p>
+    <div class="legend"><span><span class="key" style="border-color:var(--series-2)"></span>Current settings</span><span><span class="key" style="border-color:var(--series-1)"></span>Tight-track settings</span></div>
+    <div class="chart-box" id="chartBox"><svg class="chart-svg" id="errChart" viewBox="0 0 640 300" role="img" aria-label="Fit error by distance, current vs tight settings"></svg><div class="tooltip" id="chartTip" hidden></div></div>
+    <p class="small muted" id="chartNote"></p>
+    <div><button class="btn" id="tableToggle" aria-expanded="false">Show the numbers as a table</button></div>
+    <div class="table-wrap" id="chartTable" hidden></div>
+  </div>
+  <div class="card stack">
+    <h3>The five causes</h3>
+    <div class="table-wrap"><table>
+      <thead><tr><th>#</th><th>What happened</th><th>Fixed by (tight profile)</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>Paint seen over less than 8 m was fitted with a straight line, up to 15 m with one arc. An S averages to almost straight. <b>Main cause.</b></td><td>Arc from 3 m, S-shape from 6 m; fitted range shortened until the curve sits on the paint</td></tr>
+        <tr><td>2</td><td>The search extended the line straight ahead and lost tight bends.</td><td>Extends it as a curve; widens the window after a miss</td></tr>
+        <tr><td>3</td><td>Lines bending tighter than 10 m radius were thrown away, twice.</td><td>Limit set from the track's tightest bend (2.4 m for MinRadius 3)</td></tr>
+        <tr><td>4</td><td>Direction and bend were judged at the rear axle, 4–6 m behind the first visible road.</td><td>Judged at the first visible road row</td></tr>
+        <tr><td>5</td><td>The controller's checks used the rear axle too and dropped 23–63 % of good lines.</td><td>Checks made 4 m ahead</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+  <div class="card stack">
+    <h3>Before and after, per clip</h3>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Clip</th><th class="num">Lane bend seen, before → after [1/m]</th><th class="num">Both lines accepted by the controller</th></tr></thead>
+      <tbody>
+        <tr><td>12.23.27</td><td class="num">0.038 → 0.147</td><td class="num">69 % → 94 %</td></tr>
+        <tr><td>12.23.27 (1)</td><td class="num">0.020 → 0.092</td><td class="num">89 % → 94 %</td></tr>
+        <tr><td>12.23.28</td><td class="num">0.035 → 0.150</td><td class="num">47 % → 81 %</td></tr>
+      </tbody>
+    </table></div>
+    <p class="small muted">Lane bend = 90th percentile of the lane-centre curvature reaching the controller. Not yet re-run in MATLAB with the team CNN.</p>
+  </div>
+</section>
+
+<!-- ======================================================== RUN -->
+<section class="view" id="run" role="tabpanel" aria-labelledby="tab-run" hidden>
+  <div class="stack">
+    <span class="eyebrow">Run it · command builder</span>
+    <h2>Fill in the blanks, copy the command</h2>
+    <p class="lead">Choose what you want to do. The box below writes the exact MATLAB line. Paste it into MATLAB's Command Window after <code>run('config/startup.m')</code>.</p>
+  </div>
+  <div class="grid-2">
+    <div class="card stack">
+      <div class="ctl"><label for="rTask">What to do</label>
+        <select id="rTask">
+          <option value="one">Run one video</option>
+          <option value="all">Run every video in vids/</option>
+          <option value="pick">Pick a video in a dialog (easiest)</option>
+          <option value="watch">Watch vids/ and process new videos automatically</option>
+          <option value="checks">Check everything (tests, then videos)</option>
+          <option value="mil">Simulate the controller on the official track</option>
+        </select></div>
+      <div class="ctl" data-for="one"><label for="rFile">Video file in vids/</label><input type="text" id="rFile" value="WhatsApp Video 2026-10-16 at 12.23.27.mp4"></div>
+      <div class="ctl" data-for="one all watch pick"><label for="rProf">Track</label>
+        <select id="rProf"><option value="tight">College / test lane with tight bends</option><option value="official">Official aBaja LKA track</option></select></div>
+      <div class="ctl" data-for="one all"><label for="rDet">Lane detector</label>
+        <select id="rDet"><option value="">Automatic (team CNN if installed, else classic)</option><option value="cnn">Team CNN (UFLDv2)</option><option value="classic">Classic (no AI)</option><option value="yolop">YOLOP (2025 model)</option></select></div>
+      <div class="ctl" data-for="one all"><label for="rH">Camera height above the road [m] <output id="rHo"></output></label><input type="range" id="rH" min="0.6" max="2" step="0.05" value="1.2"></div>
+      <div class="ctl" data-for="one all"><label for="rF">Camera field of view [deg] <output id="rFo"></output></label><input type="range" id="rF" min="50" max="110" step="1" value="70"></div>
+      <label class="check" data-for="one all watch"><input type="checkbox" id="rVid" checked> Write the annotated video (slower)</label>
+      <label class="check" data-for="checks"><input type="checkbox" id="rFull"> Full check (also closed-loop tests and every video)</label>
+      <label class="check" data-for="mil"><input type="checkbox" id="rAllMil"> All 5 scenarios × 3 controllers (about 15 min)</label>
+    </div>
+    <div class="card stack">
+      <span class="eyebrow">MATLAB command</span>
+      <pre class="cmd" id="rOut"></pre>
+      <div class="row"><button class="btn primary" id="rCopy">Copy command</button><span class="small muted" id="rCopied" aria-live="polite"></span></div>
+      <span class="eyebrow">Without opening MATLAB (Windows)</span>
+      <pre class="cmd" id="rBat"></pre>
+      <p class="small muted" id="rWhere"></p>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================== PLAN -->
+<section class="view" id="plan" role="tabpanel" aria-labelledby="tab-plan" hidden>
+  <div class="stack">
+    <span class="eyebrow">Learning plan · your progress stays in this browser</span>
+    <h2>Three days to useful, four weeks to confident</h2>
+    <p class="lead">Each step ends with something you do in the repository. Tick it off when done. Study loop for every step: read, run, change one number, predict, check, explain it to a teammate.</p>
+  </div>
+  <div class="card stack"><div class="row" style="justify-content:space-between"><b id="planCount"></b><button class="btn" id="planReset">Clear my ticks</button></div><div class="progress"><div id="planBar"></div></div></div>
+  <div class="grid-2" id="planBox"></div>
+</section>
+
+<!-- ======================================================== QUIZ -->
+<section class="view" id="quiz" role="tabpanel" aria-labelledby="tab-quiz" hidden>
+  <div class="stack">
+    <span class="eyebrow">Quiz · instant feedback</span>
+    <h2>Twelve questions, every answer explained</h2>
+    <p class="lead">Pick an answer; the explanation appears straight away. Wrong answers are where the learning is.</p>
+  </div>
+  <div class="card row" style="justify-content:space-between"><b id="quizScore"></b><button class="btn" id="quizReset">Start again</button></div>
+  <div class="grid-2" id="quizBox"></div>
+</section>
+
+<!-- ======================================================== WORDS -->
+<section class="view" id="words" role="tabpanel" aria-labelledby="tab-words" hidden>
+  <div class="stack">
+    <span class="eyebrow">Words · searchable glossary</span>
+    <h2>Every term, one line of plain English</h2>
+  </div>
+  <div class="card stack">
+    <input type="search" id="gSearch" placeholder="Type a word, for example kalman, curvature, bus" aria-label="Search the glossary">
+    <div class="gloss" id="gBox"></div>
+  </div>
+</section>
+
+<footer>Built from the repository on 16 Oct 2026. Lab maths ported from <code>src/vision</code> and <code>src/controllers</code>; results from a Python copy of the camera chain on the three college clips.</footer>
+</main>
+
+<script>
+(() => {
+'use strict';
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* storage off: fine */ } }
+};
+
+/* ---------------------------------------------------------------- tabs */
+const views = $$('section.view');
+function show(id) {
+  if (!views.some(v => v.id === id)) id = 'start';
+  views.forEach(v => { v.hidden = v.id !== id; });
+  $$('.tab').forEach(t => t.setAttribute('aria-selected', String(t.dataset.view === id)));
+  store.set('lka-tab', id);
+  if (id === 'fitlab') drawFit();
+  if (id === 'steer') drawSteer();
+  if (id === 'results') drawChart();
+}
+$$('.tab').forEach(t => t.addEventListener('click', () => { show(t.dataset.view); try { history.replaceState(null, '', '#' + t.dataset.view); } catch (e) {} }));
+$$('[data-goto]').forEach(b => b.addEventListener('click', () => { show(b.dataset.goto); window.scrollTo(0, 0); }));
+
+/* ---------------------------------------------------------------- system map */
+const steps = [
+  ['Camera', 'see', 'Takes 20 pictures a second. Phone clips are 832×464 after WhatsApp; the simulator camera is 1280×720.', 'Simulation 3D Camera, vids/'],
+  ['Lane detector', 'see', 'Turns the picture into a paint-probability picture: bright where it believes there is a lane line. Three choices: classic (no AI), the team CNN (UFLDv2, trained on highway photos) or YOLOP.', 'src/vision/lka_detector_*.m'],
+  ['Top view', 'see', 'Re-draws that picture as if seen from above, 5 cm per pixel, so distances are in metres. Needs the camera height, tilt and field of view.', 'lka_camera_model.m, lka_bev_warp.m'],
+  ['Search + fit', 'see', 'Walks forward slice by slice to find each line, then fits one smooth curve (4 numbers: offset, heading, bend, bend change). This is where the straight-line problem lived.', 'lka_search_boundary.m, lka_fit_boundary.m', true],
+  ['Line checks', 'see', 'Throws away lines that look impossible (wrong side, too bent, wrong lane width) and sends the rest on as LaneSensorBus.', 'lka_vision_lane_step.m'],
+  ['Lane Perception', 'decide', 'Checks the lines again, moves each one half a lane width inward to get the lane centre, and smooths it with a Kalman filter that also fills short gaps.', 'LKA_Controller.slx, src/perception/'],
+  ['Supervisor', 'decide', 'A state machine: OFF, STANDBY, ACTIVE, DEGRADED, TAKEOVER. It only steers when the speed and the lane quality are good enough.', 'Stateflow chart "LKA Mode Logic"'],
+  ['Controllers', 'decide', 'Pure pursuit steers (aim at the lane centre about 4–8 m ahead). Stanley 2025 and MPC run alongside for comparison.', 'src/controllers/'],
+  ['Limits', 'decide', 'Caps the sideways push at 3 m/s² and its change at 5 m/s³, and the wheels at ±32° and 60°/s.', 'lka_curvature_limits.m, Steering Actuator Manager'],
+  ['Steering out', 'decide', 'A road-wheel angle and the turning radius the car will drive (1000 m means straight).', 'SteerCmd, TurnRadius outputs']
+];
+const map = $('#map');
+steps.forEach((s, i) => {
+  if (i === 5) { const h = document.createElement('span'); h.className = 'half-label'; h.textContent = '2 · Decide the steering (LKA_Controller.slx)'; map.appendChild(h); }
+  const b = document.createElement('button');
+  b.className = 'chip' + (s[4] ? ' bug' : '');
+  b.textContent = s[0];
+  b.setAttribute('aria-pressed', 'false');
+  b.addEventListener('click', () => pickStep(i));
+  map.appendChild(b);
+  if (i !== 4 && i !== 9) { const a = document.createElement('span'); a.className = 'arrow'; a.textContent = '→'; a.setAttribute('aria-hidden', 'true'); map.appendChild(a); }
+});
+function pickStep(i) {
+  $$('.chip', map).forEach((c, j) => c.setAttribute('aria-pressed', String(j === i)));
+  const s = steps[i], box = $('#mapInfo');
+  box.replaceChildren();
+  const h = document.createElement('h3'); h.textContent = (i + 1) + '. ' + s[0];
+  const p = document.createElement('p'); p.textContent = s[2];
+  const f = document.createElement('p'); f.className = 'small muted'; f.textContent = 'Where: ' + s[3];
+  box.append(h, p, f);
+}
+pickStep(3);
+
+/* ---------------------------------------------------------------- shared maths */
+function solve(M, b) { // Gaussian elimination with partial pivoting, small square systems
+  const n = b.length, A = M.map((r, i) => [...r, b[i]]);
+  for (let c = 0; c < n; c++) {
+    let p = c;
+    for (let r = c + 1; r < n; r++) if (Math.abs(A[r][c]) > Math.abs(A[p][c])) p = r;
+    [A[c], A[p]] = [A[p], A[c]];
+    if (Math.abs(A[c][c]) < 1e-14) return null;
+    for (let r = c + 1; r < n; r++) { const f = A[r][c] / A[c][c]; for (let k = c; k <= n; k++) A[r][k] -= f * A[c][k]; }
+  }
+  const x = new Array(n).fill(0);
+  for (let r = n - 1; r >= 0; r--) { let s = A[r][n]; for (let k = r + 1; k < n; k++) s -= A[r][k] * x[k]; x[r] = s / A[r][r]; }
+  return x;
+}
+function polyfit(xs, ys, deg) { // least squares, returns [a0..adeg] for y = sum a_k x^k
+  const n = deg + 1, M = Array.from({length: n}, () => new Array(n).fill(0)), b = new Array(n).fill(0);
+  xs.forEach((x, i) => { const p = []; for (let k = 0; k < n; k++) p.push(Math.pow(x, k)); for (let r = 0; r < n; r++) { b[r] += p[r] * ys[i]; for (let c = 0; c < n; c++) M[r][c] += p[r] * p[c]; } });
+  return solve(M, b) || new Array(n).fill(0);
+}
+const polyval = (a, x) => a.reduce((s, c, k) => s + c * Math.pow(x, k), 0);
+function rng(seed) { let s = seed >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
+function gauss(r) { const u = Math.max(r(), 1e-9), v = r(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+
+/* ---------------------------------------------------------------- lane-fit lab (port of the MATLAB chain) */
+const SETTINGS = {
+  official: {QuadSpan: 8, CubicSpan: 15, Adaptive: false, Quad: false, Grow: 0, kMax: 0.1, headMax: 35, checkNear: false, Full: 12},
+  tight: {QuadSpan: 3, CubicSpan: 6, Adaptive: true, Quad: true, Grow: 0.15, kMax: 1 / (0.8 * 3), headMax: 50, checkNear: true, Full: 6}
+};
+const RES = 0.05, HALF = 6, NCOL = Math.round(2 * HALF / RES);
+const colY = c => HALF - RES * (c + 0.5);
+function makeBev(p) {
+  const rows = [], r = rng(7);
+  const centre = x => p.A * Math.sin(2 * Math.PI * (x - p.xNear) / p.L + p.phi);
+  for (let x = p.xNear + RES / 2; x < p.xFar; x += RES) {
+    const cells = new Map();
+    for (const side of [1, -1]) {
+      const y = centre(x) + side * p.W / 2 + (p.noise ? 0.012 * gauss(r) : 0);
+      for (const dy of [-0.05, 0, 0.05]) {
+        const c = Math.round((HALF - (y + dy)) / RES - 0.5);
+        if (c >= 0 && c < NCOL) cells.set(c, 0.95);
+      }
+    }
+    if (p.noise && r() < 0.12) { const c = Math.floor(r() * NCOL); cells.set(c, 0.8); }
+    rows.push({x, cells});
+  }
+  return {rows, centre};
+}
+function search(bev, p, prior, S) {
+  const pts = [], px = [], py = [];
+  let gap = 0, misses = 0;
+  for (let e = p.xNear; e + 1 <= p.xFar + 1e-9; e += 1) {
+    const rows = bev.rows.filter(r => r.x >= e && r.x < e + 1);
+    if (!rows.length) continue;
+    const xm = e + 0.5;
+    let yc;
+    if (S.Quad && px.length >= 4) {
+      const n = Math.min(px.length, 5), x0 = px[px.length - 1];
+      const a = polyfit(px.slice(-n).map(v => v - x0), py.slice(-n), 2);
+      a[2] = Math.max(-S.kMax / 2, Math.min(S.kMax / 2, a[2]));
+      yc = polyval(a, xm - x0);
+    } else if (px.length >= 3) {
+      const n = Math.min(px.length, 6), a = polyfit(px.slice(-n), py.slice(-n), 1);
+      yc = polyval(a, xm);
+    } else if (px.length) {
+      yc = prior.y + (py[py.length - 1] - prior.y);
+    } else yc = prior.y;
+    const hw = prior.hw + (px.length ? S.Grow * misses : 0);
+    const prof = new Map();
+    for (const r of rows) for (const [c, w] of r.cells) {
+      const y = colY(c);
+      if (y < yc - hw || y > yc + hw) continue;
+      if (!px.length && prior.side * y <= 0.4) continue;
+      if (w >= 0.5) prof.set(c, (prof.get(c) || 0) + w);
+    }
+    const cols = [...prof.keys()].sort((a, b) => a - b), runs = [];
+    cols.forEach(c => { const last = runs[runs.length - 1]; if (last && c === last[last.length - 1] + 1) last.push(c); else runs.push([c]); });
+    let best = null, bestD = Infinity;
+    for (const run of runs) {
+      const mass = run.reduce((s, c) => s + prof.get(c), 0);
+      if (mass < 4) continue;
+      const y = run.reduce((s, c) => s + prof.get(c) * colY(c), 0) / mass;
+      if (Math.abs(y - yc) < bestD) { bestD = Math.abs(y - yc); best = y; }
+    }
+    if (best === null) { gap += 1; misses += 1; if (gap > 8 && px.length) break; continue; }
+    gap = 0; misses = 0; px.push(xm); py.push(best);
+    for (const r of rows) for (const [c, w] of r.cells) {
+      const y = colY(c);
+      if (w >= 0.5 && y >= yc - hw && y <= yc + hw && Math.abs(y - best) <= 0.25) pts.push([r.x, y, w]);
+    }
+  }
+  return pts;
+}
+function robust(pts, deg) {
+  const ridge = [0, 0, 1e-3, 1e-2], n = deg + 1, w0 = pts.map(q => q[2]);
+  let w = w0.slice(), cs = new Array(n).fill(0), res = [];
+  for (let it = 0; it < 3; it++) {
+    const M = Array.from({length: n}, () => new Array(n).fill(0)), b = new Array(n).fill(0);
+    pts.forEach((q, i) => { const s = q[0] / 10, a = []; for (let k = 0; k < n; k++) a.push(Math.pow(s, k)); for (let r = 0; r < n; r++) { b[r] += w[i] * a[r] * q[1]; for (let c = 0; c < n; c++) M[r][c] += w[i] * a[r] * a[c]; } });
+    for (let k = 0; k < n; k++) M[k][k] += ridge[k];
+    cs = solve(M, b) || cs;
+    res = pts.map(q => q[1] - polyval(cs, q[0] / 10));
+    w = w0.map((v, i) => v * Math.min(1, 0.08 / Math.max(Math.abs(res[i]), 1e-12)));
+  }
+  return {cs, res};
+}
+function fit(pts, S) {
+  if (pts.length < 60) return null;
+  const deg = sp => sp >= S.CubicSpan ? 3 : sp >= S.QuadSpan ? 2 : 1;
+  let P = pts, xmin = Math.min(...P.map(q => q[0])), xmax = Math.max(...P.map(q => q[0]));
+  if (xmax - xmin < 4) return null;
+  let d = deg(xmax - xmin), f = robust(P, d);
+  const binP90 = (Q, r) => { // line centre every 0.5 m (weighted mean residual), 90th percentile
+    const m = new Map(); Q.forEach((q, i) => { const k = Math.floor(q[0] / 0.5), e = m.get(k) || [0, 0]; e[0] += q[2] * r[i]; e[1] += q[2]; m.set(k, e); });
+    const a = [...m.values()].map(e => Math.abs(e[0] / e[1])).sort((x, y) => x - y); return a[Math.max(0, Math.ceil(0.9 * a.length) - 1)];
+  };
+  if (S.Adaptive) {
+    let xEnd = xmax;
+    while (binP90(P, f.res) > 0.04) {
+      const xNew = Math.max(xmin + 5, xEnd - 1);
+      if (xNew >= xEnd - 1e-6) break;   // shortest range reached (rounding can keep "> 5" true)
+      xEnd = xNew;
+      const keep = P.filter(q => q[0] <= xEnd);
+      if (keep.length < 60) break;
+      P = keep; xmax = Math.max(...P.map(q => q[0])); d = deg(xmax - xmin); f = robust(P, d);
+    }
+  }
+  const c = [0, 1, 2, 3].map(k => (f.cs[k] || 0) / Math.pow(10, k));
+  return {c, deg: d, view: xmax, span: xmax - xmin};
+}
+const yFit = (c, x) => c[0] + c[1] * x + c[2] * x * x + c[3] * x * x * x;
+function laneSide(bev, p, side, S) {
+  const priors = [{y: side * p.W / 2, hw: 1.3, side}];
+  // nearest-peak seed in the first 3 m (classic histogram start)
+  const prof = new Map();
+  for (const r of bev.rows) if (r.x < p.xNear + 3) for (const [c, w] of r.cells) if (w >= 0.5 && side * colY(c) > 0.4) prof.set(c, (prof.get(c) || 0) + w);
+  const cols = [...prof.keys()].sort((a, b) => a - b), runs = [];
+  cols.forEach(c => { const last = runs[runs.length - 1]; if (last && c === last[last.length - 1] + 1) last.push(c); else runs.push([c]); });
+  let seed = NaN;
+  runs.forEach(run => { const m = run.reduce((s, c) => s + prof.get(c), 0); if (m >= 30) { const y = run.reduce((s, c) => s + prof.get(c) * colY(c), 0) / m; if (!(Math.abs(y) >= Math.abs(seed))) seed = y; } });
+  if (isFinite(seed)) priors.push({y: seed, hw: 0.6, side});
+  let out = {found: false, why: 'no paint found'};
+  for (const pr of priors) {
+    const f = fit(search(bev, p, pr, S), S);
+    if (!f) { out = {found: false, why: 'too little paint found'}; continue; }
+    const x = S.checkNear ? p.xNear : 0;
+    const head = Math.atan(f.c[1] + 2 * f.c[2] * x + 3 * f.c[3] * x * x) * 180 / Math.PI;
+    const curv = 2 * f.c[2] + 6 * f.c[3] * x;
+    const where = S.checkNear ? 'at the first visible row' : 'at the rear axle';
+    if (Math.abs(head) > S.headMax) { out = {found: false, why: `rejected: heading ${head.toFixed(0)}° ${where} (limit ${S.headMax}°)`, f}; continue; }
+    if (Math.abs(curv) > S.kMax) { out = {found: false, why: `rejected: bend ${curv.toFixed(2)} 1/m ${where} (limit ${S.kMax.toFixed(2)})`, f}; continue; }
+    if (side * yFit(f.c, p.xNear) <= 0) { out = {found: false, why: 'rejected: on the wrong side of the car', f}; continue; }
+    return {found: true, f};
+  }
+  return out;
+}
+function fitParams() {
+  return {A: +$('#fA').value, L: +$('#fL').value, phi: +$('#fP').value * Math.PI / 180, W: +$('#fW').value,
+    xNear: +$('#fN').value, xFar: +$('#fF').value, noise: $('#fNoise').checked};
+}
+const FIT_COLOR = {official: '#f39a62', tight: '#7fb4f0'};
+function drawFit() {
+  const p = fitParams();
+  $('#fAo').value = `±${p.A.toFixed(2)} m`; $('#fLo').value = `${p.L} m`; $('#fPo').value = `${$('#fP').value}°`;
+  $('#fWo').value = `${p.W.toFixed(1)} m`; $('#fNo').value = `${p.xNear.toFixed(2)} m`; $('#fFo').value = `${p.xFar} m`;
+  const bev = makeBev(p);
+  const results = {};
+  for (const name of ['official', 'tight']) results[name] = [1, -1].map(s => laneSide(bev, p, s, SETTINGS[name]));
+  const cv = $('#fitCanvas'), g = cv.getContext('2d'), Wc = cv.width, Hc = cv.height;
+  const top = 31, Y = x => Hc - 20 - x * (Hc - 40) / top;
+  const sxm = (Hc - 40) / top * 2;                    // sideways drawn 2x
+  const Xm = y => Wc / 2 - y * sxm;
+  g.fillStyle = '#2c3034'; g.fillRect(0, 0, Wc, Hc);
+  g.fillStyle = 'rgba(0,0,0,0.35)'; g.fillRect(0, Y(p.xNear), Wc, Hc - Y(p.xNear));
+  g.strokeStyle = 'rgba(255,255,255,0.07)'; g.lineWidth = 1;
+  for (let x = 0; x <= top; x += 5) { g.beginPath(); g.moveTo(0, Y(x)); g.lineTo(Wc, Y(x)); g.stroke(); }
+  g.fillStyle = 'rgba(255,255,255,0.55)'; g.font = '12px Barlow, sans-serif';
+  for (let x = 5; x <= top; x += 5) g.fillText(`${x} m`, 6, Y(x) - 3);
+  g.fillText('camera cannot see this', 6, Y(p.xNear / 2));
+  // paint
+  g.fillStyle = '#f1f1ec';
+  for (const r of bev.rows) for (const [c] of r.cells) g.fillRect(Xm(colY(c)) - 1.5, Y(r.x) - 1, 3, 2.2);
+  // car (rear axle at x = 0)
+  g.fillStyle = '#e3a42c'; g.fillRect(Wc / 2 - 0.65 * sxm, Y(1.9), 1.3 * sxm, Y(-0.4) - Y(1.9));
+  g.fillStyle = '#1c1400'; g.font = '600 12px Barlow, sans-serif'; g.textAlign = 'center'; g.fillText('Baja', Wc / 2, Y(0.6)); g.textAlign = 'left';
+  // fits
+  for (const name of ['official', 'tight']) {
+    if (!$(name === 'official' ? '#fShowO' : '#fShowT').checked) continue;
+    results[name].forEach(res => {
+      if (!res.f) return;
+      const {c, view} = res.f;
+      g.lineWidth = name === 'official' ? 5 : 3; g.strokeStyle = FIT_COLOR[name]; g.setLineDash(res.found ? [] : [6, 6]);
+      g.beginPath();
+      for (let x = p.xNear; x <= view; x += 0.1) { const px = Xm(yFit(c, x)), py = Y(x); x === p.xNear ? g.moveTo(px, py) : g.lineTo(px, py); }
+      g.stroke(); g.setLineDash([]);
+    });
+  }
+  // readout
+  const out = $('#fitOut'); out.replaceChildren();
+  const truth = (side, x) => bev.centre(x) + side * p.W / 2;
+  for (const name of ['official', 'tight']) {
+    const box = document.createElement('div'); box.className = 'stack';
+    const h = document.createElement('b'); h.innerHTML = `<span class="key" style="border-color:${FIT_COLOR[name]}"></span>`;
+    h.append(name === 'official' ? 'Official settings' : 'Tight-track settings'); box.appendChild(h);
+    const dl = document.createElement('div'); dl.className = 'stack small';
+    let worst = 0;
+    results[name].forEach((res, i) => {
+      const side = i === 0 ? 1 : -1, label = side > 0 ? 'Left line' : 'Right line';
+      let val;
+      if (!res.found) val = res.why;
+      else {
+        let e = 0; for (let x = p.xNear; x <= res.f.view; x += 0.25) e = Math.max(e, Math.abs(yFit(res.f.c, x) - truth(side, x)));
+        worst = Math.max(worst, e);
+        val = `${e.toFixed(2)} m off, to ${res.f.view.toFixed(1)} m, ${['', 'straight', 'arc', 'S-curve'][res.f.deg]}`;
+      }
+      const line = document.createElement('div'), b = document.createElement('span');
+      b.className = 'muted'; b.textContent = label + ': ';
+      const v2 = document.createElement('span'); v2.className = 'mono'; v2.textContent = val;
+      line.append(b, v2); dl.appendChild(line);
+    });
+    box.appendChild(dl);
+    const pill = document.createElement('span');
+    const anyFound = results[name].some(r => r.found);
+    pill.className = 'pill ' + (anyFound && worst <= 0.25 ? 'good' : 'bad');
+    pill.textContent = !anyFound ? 'no line accepted' : worst <= 0.25 ? 'follows the paint' : 'straight-lane alarm';
+    box.appendChild(pill);
+    out.appendChild(box);
+  }
+  const tk = p.A * Math.pow(2 * Math.PI / p.L, 2);
+  const note = document.createElement('p'); note.className = 'small muted';
+  note.textContent = `Tightest bend of this lane: radius ${(1 / Math.max(tk, 1e-6)).toFixed(1)} m (${tk.toFixed(3)} 1/m). Official track: 127 m.`;
+  out.appendChild(note);
+}
+['#fA', '#fL', '#fP', '#fW', '#fN', '#fF', '#fNoise', '#fShowO', '#fShowT'].forEach(s => $(s).addEventListener('input', drawFit));
+function setFit(v) { Object.entries(v).forEach(([k, val]) => { $(k).value = val; }); drawFit(); }
+$('#fSample').addEventListener('click', () => setFit({'#fA': 0.8, '#fL': 12, '#fP': 0, '#fW': 2.0, '#fN': 4.5, '#fF': 20}));
+$('#fGentle').addEventListener('click', () => setFit({'#fA': 0.6, '#fL': 60, '#fP': 0, '#fW': 3.5, '#fN': 4.5, '#fF': 20}));
+
+/* ---------------------------------------------------------------- steering lab */
+const VEH = {L: 1.45, Kus: 240 / 1.45 * (0.70 / 22000 - 0.75 / 26000), steerMax: 32, rateMax: 60};
+function drawSteer() {
+  const y = +$('#sY').value, psi = +$('#sH').value * Math.PI / 180, k = +$('#sK').value, Ld0 = +$('#sL').value, v = +$('#sV').value;
+  $('#sYo').value = `${y.toFixed(2)} m`; $('#sHo').value = `${$('#sH').value}°`; $('#sKo').value = `${k.toFixed(3)} 1/m`;
+  $('#sLo').value = `${Ld0.toFixed(2)} m`; $('#sVo').value = `${v.toFixed(2)} m/s (${(v * 3.6).toFixed(0)} km/h)`;
+  const Ld = Math.min(15, Math.max(3.5, Ld0 / (1 + 1.5 * Math.abs(k) * Ld0)));
+  const yT = y + Math.tan(psi) * Ld + k * Ld * Ld / 2;
+  const kPP = 2 * yT / (Ld * Ld + yT * yT);
+  const vEff = Math.max(v, 2), Leff = VEH.L + VEH.Kus * v * v;
+  const kMax = Math.min(3 / (vEff * vEff), Math.tan(VEH.steerMax * Math.PI / 180) / Leff);
+  const kCmd = Math.max(-kMax, Math.min(kMax, kPP));
+  const delta = Math.atan(kCmd * Leff) * 180 / Math.PI;
+  const R = Math.abs(kCmd) < 1e-3 ? Infinity : 1 / kCmd;
+  const ay = v * v * kCmd;
+  const dl = $('#steerOut'); dl.replaceChildren();
+  const rows = [
+    ['Look-ahead used', `${Ld.toFixed(2)} m` + (Ld !== Ld0 ? ' (shortened in the bend / clamped)' : '')],
+    ['Target sideways offset', `${yT.toFixed(2)} m`],
+    ['Requested curvature', `${kPP.toFixed(3)} 1/m`],
+    ['After the limits', `${kCmd.toFixed(3)} 1/m` + (kCmd !== kPP ? ' (limited)' : '')],
+    ['Turning radius', isFinite(R) ? `${Math.abs(R).toFixed(1)} m ${R > 0 ? 'left' : 'right'}` : 'straight (1000 m)'],
+    ['Road-wheel angle', `${Math.abs(delta).toFixed(1)}° ${delta > 0.05 ? 'left' : delta < -0.05 ? 'right' : ''}`],
+    ['Sideways push', `${Math.abs(ay).toFixed(2)} m/s² (limit 3)`]
+  ];
+  rows.forEach(([a, b]) => { const dt = document.createElement('dt'); dt.textContent = a; const dd = document.createElement('dd'); dd.textContent = b; dd.style.whiteSpace = 'normal'; dl.append(dt, dd); });
+  const cv = $('#steerCanvas'), g = cv.getContext('2d'), Wc = cv.width, Hc = cv.height;
+  const s = (Hc - 40) / 13, X = yy => Wc / 2 - yy * s, Y = x => Hc - 30 - x * s;
+  g.fillStyle = '#2c3034'; g.fillRect(0, 0, Wc, Hc);
+  g.strokeStyle = 'rgba(255,255,255,0.07)'; g.lineWidth = 1;
+  for (let x = 0; x <= 13; x++) { g.beginPath(); g.moveTo(0, Y(x)); g.lineTo(Wc, Y(x)); g.stroke(); }
+  for (let yy = -6; yy <= 6; yy++) { g.beginPath(); g.moveTo(X(yy), 0); g.lineTo(X(yy), Hc); g.stroke(); }
+  const centre = x => y + Math.tan(psi) * x + k * x * x / 2;
+  for (const side of [1, -1]) { g.strokeStyle = '#f1f1ec'; g.lineWidth = 3; g.beginPath(); for (let x = 0; x <= 13; x += 0.1) { const px = X(centre(x) + side * 1.0), py = Y(x); x === 0 ? g.moveTo(px, py) : g.lineTo(px, py); } g.stroke(); }
+  g.strokeStyle = '#e3a42c'; g.setLineDash([8, 7]); g.lineWidth = 2; g.beginPath(); for (let x = 0; x <= 13; x += 0.1) { const px = X(centre(x)), py = Y(x); x === 0 ? g.moveTo(px, py) : g.lineTo(px, py); } g.stroke(); g.setLineDash([]);
+  g.strokeStyle = '#7fb4f0'; g.lineWidth = 3; g.beginPath();
+  for (let sArc = 0; sArc <= 13; sArc += 0.1) { const th = kCmd * sArc; const xx = Math.abs(kCmd) < 1e-6 ? sArc : Math.sin(th) / kCmd, yy = Math.abs(kCmd) < 1e-6 ? 0 : (1 - Math.cos(th)) / kCmd; if (xx < -0.5) break; sArc === 0 ? g.moveTo(X(yy), Y(xx)) : g.lineTo(X(yy), Y(xx)); }
+  g.stroke();
+  g.fillStyle = '#e3a42c'; g.beginPath(); g.arc(X(yT), Y(Ld), 7, 0, 2 * Math.PI); g.fill();
+  g.strokeStyle = '#2c3034'; g.lineWidth = 2; g.stroke();
+  g.fillStyle = '#f1f1ec'; g.font = '12px Barlow, sans-serif'; g.fillText(`look-ahead ${Ld.toFixed(1)} m`, X(yT) + 10, Y(Ld) + 4);
+  g.fillStyle = '#e3a42c'; g.fillRect(X(0.65), Y(1.9), 1.3 * s, 2.3 * s);
+  g.fillStyle = '#1c1400'; g.font = '600 12px Barlow, sans-serif'; g.textAlign = 'center'; g.fillText('Baja', X(0), Y(0.6)); g.textAlign = 'left';
+}
+['#sY', '#sH', '#sK', '#sL', '#sV'].forEach(s => $(s).addEventListener('input', drawSteer));
+
+/* ---------------------------------------------------------------- code reader */
+const SNIPS = {
+  fit: [
+    ['function [b, ok] = lka_fit_boundary(pts, F)', 'A function: it takes the paint points (pts: x, y and how sure the detector is) and the fit settings F, and returns a line description b plus ok = true/false.'],
+    ['    x = pts(:, 1); y = pts(:, 2); w0 = pts(:, 3);', 'Split the table of points into three columns. (:, 1) means "every row, column 1". MATLAB counts from 1.'],
+    ['    span = max(x) - min(x);', 'How many metres of road the paint covers, from the nearest point to the furthest.'],
+    ['    if span >= F.CubicSpan', 'Official settings: CubicSpan = 15 m. Only paint seen over 15 m or more may use an S-shaped (cubic) curve.', true],
+    ['        deg = 3;', 'Degree 3 = cubic: can bend one way then the other once (one S).'],
+    ['    elseif span >= F.QuadSpan', 'Official settings: QuadSpan = 8 m. Between 8 and 15 m: one arc only.', true],
+    ['        deg = 2;', 'Degree 2 = parabola: one bend in one direction. An S-bend averages out to nearly straight.', true],
+    ['    else', 'Less than 8 m of paint...'],
+    ['        deg = 1;', '...gives degree 1: a straight line, whatever the paint does. On the college snake lane this happened whenever the search lost the line early.', true],
+    ['    A = (x / 10) .^ (0:deg);', 'Builds the table 1, x, x², x³ (x scaled by 10 so the numbers stay similar in size). .^ means "power, element by element".'],
+    ['    cs = (A\' * Aw + R) \\ (Aw\' * y);', 'Solves for the best coefficients in one go (weighted least squares). \\ is MATLAB\'s "solve this equation" operator; R is a small penalty that stops wild curves.'],
+    ['    w = w0 .* min(1, F.HuberDelta ./ max(abs(r), eps));', 'Huber weighting: points further than 8 cm from the curve count less next time. Good against stray paint, but it also discounts the real bend when the curve is too simple.'],
+    ['    if isfield(F, \'AdaptiveRange\') && F.AdaptiveRange', 'NEW (tight profile): while 90 % of the paint is not within 6 cm of the curve, cut 1 m off the far end and fit again. The near part, which the car steers on, is then fitted faithfully.'],
+    ['    b.ViewRange = max(x);', 'Reports how far the fit really reaches. The video overlay now stops drawing there.']
+  ],
+  pp: [
+    ['function [kappaPP, Ld, yTarget, kappaFF] = lka_pure_pursuit(est, LdBase, PP)', 'Inputs: est (the lane centre estimate), LdBase (look-ahead from a speed table) and PP (settings). Outputs: the curvature to drive, the look-ahead used, the target offset and the road bend.'],
+    ['    Ld = LdBase / (1 + PP.LdCurvGain * abs(est.Curvature) * LdBase);', 'In a bend, look less far ahead, so the car does not cut the corner. LdCurvGain = 1.5.'],
+    ['    Ld = min(max(Ld, PP.LdMin), PP.LdMax);', 'Clamp the look-ahead between 3.5 m and 15 m. min(max(a, lo), hi) is the usual MATLAB way to clamp.'],
+    ['    yTarget = est.CenterOffset + est.HeadingAngle * Ld ...', 'Where the lane centre is, sideways, at the look-ahead distance... (the ... continues the line)'],
+    ['            + 0.5 * est.Curvature * Ld^2 + est.CurvatureDerivative * Ld^3 / 6;', '...using the 4-number lane model: offset + heading·x + bend·x²/2 + bend-change·x³/6.'],
+    ['    kappaPP = 2 * yTarget / (Ld^2 + yTarget^2);', 'The curvature of the circle that starts at the rear axle, pointing straight ahead, and passes through the target point. Radius = 1 / kappaPP.'],
+    ['    kappaFF = est.Curvature;', 'The road bend itself, reported separately (feed-forward): on a steady bend the car must steer even with zero error.']
+  ]
+};
+let snip = 'fit';
+function renderCode() {
+  const box = $('#codeBox'); box.replaceChildren();
+  SNIPS[snip].forEach((l, i) => {
+    const s = document.createElement('span'); s.className = 'ln' + (l[2] ? ' bug' : ''); s.textContent = l[0]; s.tabIndex = 0;
+    const pick = () => { $$('.ln', box).forEach(e => e.removeAttribute('aria-current')); s.setAttribute('aria-current', 'true'); const ex = $('#codeExplain'); ex.replaceChildren(); const c = document.createElement('code'); c.textContent = l[0].trim(); const p = document.createElement('p'); p.textContent = l[1]; ex.append(c, p); };
+    s.addEventListener('click', pick); s.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); } });
+    box.appendChild(s);
+    if (i === (snip === 'fit' ? 3 : 5)) pick();
+  });
+}
+$$('#codePick button').forEach(b => b.addEventListener('click', () => { snip = b.dataset.snip; $$('#codePick button').forEach(x => x.setAttribute('aria-pressed', String(x === b))); renderCode(); }));
+renderCode();
+
+/* ---------------------------------------------------------------- results chart */
+const CLIPS = [
+  {name: 'clip 12.23.27', cur: [0.089, 0.168, 0.423, 1.146, 1.584], tight: [0.040, 0.050, 0.153, 0.100, 0.113], note: 'On this clip the tight fit reaches 7 m in 39 % of frames and 9 m in 22 %: past that point it stops instead of guessing, so its values at 7 and 9 m cover fewer frames.'},
+  {name: 'clip 12.23.27 (1)', cur: [0.063, 0.062, 0.067, 0.035, 0.078], tight: [0.019, 0.029, 0.023, 0.028, 0.024], note: 'The gentlest clip: both settings stay on the paint, the tight settings two to three times closer.'},
+  {name: 'clip 12.23.28', cur: [0.149, 0.172, 0.215, 0.093, 0.167], tight: [0.033, 0.033, 0.052, 0.045, 0.035], note: 'Errors start right at the first visible row with the current settings. The tight fit reaches 7 m in 69 % of frames.'}
+];
+const DIST = [1, 3, 5, 7, 9];
+let clip = 0;
+function drawChart() {
+  const svg = $('#errChart'), d = CLIPS[clip], W = 640, H = 300, m = {l: 52, r: 96, t: 16, b: 40};
+  const ymax = Math.max(...d.cur, ...d.tight), step = ymax > 1 ? 0.5 : ymax > 0.4 ? 0.1 : 0.05, top = Math.ceil(ymax / step) * step;
+  const X = v => m.l + (v - 1) / 8 * (W - m.l - m.r), Y = v => H - m.b - v / top * (H - m.t - m.b);
+  const ns = 'http://www.w3.org/2000/svg', el = (t, a) => { const e = document.createElementNS(ns, t); Object.entries(a).forEach(([k, v]) => e.setAttribute(k, v)); return e; };
+  svg.replaceChildren();
+  for (let v = 0; v <= top + 1e-9; v += step) {
+    svg.appendChild(el('line', {x1: m.l, x2: W - m.r, y1: Y(v), y2: Y(v), stroke: 'var(--grid)', 'stroke-width': 1}));
+    const t = el('text', {x: m.l - 8, y: Y(v) + 4, 'text-anchor': 'end'}); t.textContent = v.toFixed(step < 0.1 ? 2 : 1) + ' m'; svg.appendChild(t);
+  }
+  DIST.forEach(v => { const t = el('text', {x: X(v), y: H - m.b + 18, 'text-anchor': 'middle'}); t.textContent = v + ' m'; svg.appendChild(t); });
+  const xt = el('text', {x: (m.l + W - m.r) / 2, y: H - 6, 'text-anchor': 'middle'}); xt.textContent = 'distance past the first visible road row'; svg.appendChild(xt);
+  const series = [['cur', 'var(--series-2)', 'current'], ['tight', 'var(--series-1)', 'tight']];
+  series.forEach(([k, col, lab]) => {
+    const pts = d[k].map((v, i) => `${X(DIST[i])},${Y(v)}`).join(' ');
+    svg.appendChild(el('polyline', {points: pts, fill: 'none', stroke: col, 'stroke-width': 2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round'}));
+    d[k].forEach((v, i) => svg.appendChild(el('circle', {cx: X(DIST[i]), cy: Y(v), r: 4, fill: col, stroke: 'var(--panel)', 'stroke-width': 2})));
+    const end = d[k][4], t = el('text', {x: X(9) + 10, y: Y(end) + 4, class: 'lbl'}); t.textContent = `${lab} ${end.toFixed(2)} m`; svg.appendChild(t);
+  });
+  const ca = d.cur[4], ta = d.tight[4];
+  const labs = $$('text.lbl', svg);
+  if (Math.abs(Y(ca) - Y(ta)) < 16) { const up = Y(ca) < Y(ta) ? 0 : 1; labs[up].setAttribute('y', +labs[up].getAttribute('y') - 8); labs[1 - up].setAttribute('y', +labs[1 - up].getAttribute('y') + 8); }
+  const cross = el('line', {y1: m.t, y2: H - m.b, stroke: 'var(--muted)', 'stroke-width': 1, visibility: 'hidden'}); svg.appendChild(cross);
+  const hit = el('rect', {x: m.l, y: m.t, width: W - m.l - m.r, height: H - m.t - m.b, fill: 'transparent', tabindex: 0}); svg.appendChild(hit);
+  const tip = $('#chartTip');
+  const showAt = i => {
+    cross.setAttribute('x1', X(DIST[i])); cross.setAttribute('x2', X(DIST[i])); cross.setAttribute('visibility', 'visible');
+    tip.replaceChildren();
+    const h = document.createElement('div'); h.className = 'small muted'; h.textContent = `${DIST[i]} m past the first visible row`; tip.appendChild(h);
+    series.forEach(([k, col, lab]) => { const r = document.createElement('div'); r.innerHTML = `<span class="key" style="border-color:${col};width:12px;border-top-width:2px"></span>`; const s = document.createElement('strong'); s.textContent = `${d[k][i].toFixed(3)} m`; r.append(s, ` ${lab}`); tip.appendChild(r); });
+    const box = $('#chartBox').getBoundingClientRect(), sb = svg.getBoundingClientRect(), px = (X(DIST[i]) / W) * sb.width + sb.left - box.left;
+    tip.hidden = false; tip.style.top = '8px'; tip.style.left = Math.min(Math.max(px + 12, 0), box.width - 170) + 'px';
+  };
+  const nearest = ev => { const sb = svg.getBoundingClientRect(), vx = (ev.clientX - sb.left) / sb.width * W; let bi = 0; DIST.forEach((v, i) => { if (Math.abs(X(v) - vx) < Math.abs(X(DIST[bi]) - vx)) bi = i; }); return bi; };
+  let kb = 0;
+  hit.addEventListener('pointermove', ev => showAt(nearest(ev)));
+  hit.addEventListener('pointerleave', () => { tip.hidden = true; cross.setAttribute('visibility', 'hidden'); });
+  hit.addEventListener('focus', () => showAt(kb));
+  hit.addEventListener('blur', () => { tip.hidden = true; cross.setAttribute('visibility', 'hidden'); });
+  hit.addEventListener('keydown', ev => { if (ev.key === 'ArrowRight') { kb = Math.min(4, kb + 1); showAt(kb); } if (ev.key === 'ArrowLeft') { kb = Math.max(0, kb - 1); showAt(kb); } });
+  $('#chartNote').textContent = d.note;
+  const tb = $('#chartTable'); tb.replaceChildren();
+  const t = document.createElement('table'), hd = document.createElement('tr');
+  ['Distance', 'Current [m]', 'Tight [m]'].forEach((s, i) => { const th = document.createElement('th'); th.textContent = s; if (i) th.className = 'num'; hd.appendChild(th); });
+  t.appendChild(hd);
+  DIST.forEach((v, i) => { const tr = document.createElement('tr'); [v + ' m', d.cur[i].toFixed(3), d.tight[i].toFixed(3)].forEach((s, j) => { const td = document.createElement('td'); td.textContent = s; if (j) td.className = 'num'; tr.appendChild(td); }); t.appendChild(tr); });
+  tb.appendChild(t);
+}
+$$('#clipPick button').forEach(b => b.addEventListener('click', () => { clip = +b.dataset.clip; $$('#clipPick button').forEach(x => x.setAttribute('aria-pressed', String(x === b))); drawChart(); }));
+$('#tableToggle').addEventListener('click', e => { const t = $('#chartTable'); t.hidden = !t.hidden; e.currentTarget.setAttribute('aria-expanded', String(!t.hidden)); e.currentTarget.textContent = t.hidden ? 'Show the numbers as a table' : 'Hide the table'; });
+
+/* ---------------------------------------------------------------- command builder */
+function q(s) { return "'" + String(s).replace(/'/g, "''") + "'"; }
+function buildCmd() {
+  const task = $('#rTask').value, prof = $('#rProf').value, det = $('#rDet').value, h = +$('#rH').value, f = +$('#rF').value, vid = $('#rVid').checked;
+  $('#rHo').value = h.toFixed(2) + ' m'; $('#rFo').value = f + '°';
+  $$('[data-for]').forEach(e => { e.hidden = !e.dataset.for.split(' ').includes(task); });
+  const opts = [];
+  if (prof !== 'tight') opts.push(`TrackProfile=${q(prof)}`);
+  let cmd, bat, where;
+  if (task === 'one' || task === 'all') {
+    if (det) opts.push(`Detector=${q(det)}`);
+    if (Math.abs(h - 1.2) > 1e-9) opts.push(`CameraHeight=${h}`);
+    if (f !== 70) opts.push(`HFovDeg=${f}`);
+    if (!vid) opts.push('Video=false');
+  }
+  if (task === 'one') {
+    const name = $('#rFile').value.trim() || 'clip.mp4', stem = name.replace(/\.[^.]+$/, '');
+    cmd = `run_lka_on_video(${q('vids/' + name)}, Camera='auto', OutDir=${q('test_res/' + stem)}${opts.length ? ', ' + opts.join(', ') : ''})`;
+    bat = 'tools\\run_lka.bat            (runs every video in vids\\)';
+    where = `Results: test_res/${stem}/ (annotated video, overview and path figures, CSV).`;
+  } else if (task === 'all') {
+    cmd = `run_lka_on_test_videos(${opts.join(', ')})`;
+    bat = 'tools\\run_lka.bat';
+    where = 'Results: test_res/<video>/ for each clip, plus test_res/summary.csv with the straight-lane alarm.';
+  } else if (task === 'pick') {
+    cmd = `run_lka_pick_video(${prof !== 'tight' ? `'TrackProfile', ${q(prof)}` : ''})`;
+    bat = '(needs the MATLAB window for the file dialog)';
+    where = 'A file dialog opens; the overview figure and, on Windows, the annotated video open when it is done.';
+  } else if (task === 'watch') {
+    const o = []; if (prof !== 'tight') o.push(`TrackProfile=${q(prof)}`); if (!vid) o.push('Video=false');
+    cmd = `watch_lka_videos(${o.join(', ')})\n% stop it later with:\nwatch_lka_videos(Stop=true)`;
+    bat = 'tools\\run_lka.bat watch      (one pass; schedule it every 5 minutes)';
+    where = 'Copy videos into vids/; each is processed within about 30 s. Log: test_res/watch_log.txt.';
+  } else if (task === 'checks') {
+    const full = $('#rFull').checked;
+    cmd = full ? "run_lka_checks(Level='full')" : 'run_lka_checks()';
+    bat = full ? 'tools\\run_lka.bat full' : 'tools\\run_lka.bat checks';
+    where = 'Report: results/checks/lka_checks_<date-time>.md. It ends with an error if anything failed.';
+  } else {
+    cmd = $('#rAllMil').checked ? 'results = run_lka_mil();' : "results = run_lka_mil(Scenarios={'S1_Nominal'}, Controllers=1);";
+    bat = '(run it from MATLAB)';
+    where = 'Figures and the KPI table: results/mil/.';
+  }
+  $('#rOut').textContent = cmd; $('#rBat').textContent = bat; $('#rWhere').textContent = where; $('#rCopied').textContent = '';
+}
+['#rTask', '#rFile', '#rProf', '#rDet', '#rH', '#rF', '#rVid', '#rFull', '#rAllMil'].forEach(s => $(s).addEventListener('input', buildCmd));
+$('#rCopy').addEventListener('click', () => {
+  const text = $('#rOut').textContent;
+  const done = msg => { $('#rCopied').textContent = msg; };
+  try {
+    navigator.clipboard.writeText(text).then(() => done('Copied'), () => { selectCmd(); done('Selected: press Ctrl+C'); });
+  } catch (e) { selectCmd(); done('Selected: press Ctrl+C'); }
+});
+function selectCmd() { const r = document.createRange(); r.selectNodeContents($('#rOut')); const s = getSelection(); s.removeAllRanges(); s.addRange(r); }
+buildCmd();
+
+/* ---------------------------------------------------------------- learning plan */
+const PLAN = [
+  ['Fast track · day 1: MATLAB basics', ['Do the free MATLAB Onramp on MATLAB Academy (about 2 h)', "Run run('config/startup.m') and look at LKA.PP and LKA.Vision.Fit", 'Call lka_pure_pursuit by hand with a lane 0.5 m to the left (Steering lab shows the answer)', 'Change the look-ahead from 4 to 8 m; predict, then check']],
+  ['Fast track · day 2: Simulink on the real models', ['Do the free Simulink Onramp (about 3 h)', 'Open models/LKA_Controller.slx and follow one wire from LaneSensor to SteerCmd', "Run run_lka_mil(Scenarios={'S1_Nominal'}, Controllers=1) and open results/mil/", "Run runtests('tests/unit_tests/test_lka_core.m') and read one test"]],
+  ['Fast track · day 3: camera chain and videos', ['Play with the Lane-fit lab until you can explain the straight-line problem', "Run one clip with Video=false and plot T.LeftCurvature_1pm", 'Watch an annotated video and point at the five steps of the camera chain', "Run run_lka_checks() and read the report"]],
+  ['Week 1 · MATLAB', ['Write turning_radius(delta, L) and plot R from 1° to 32°', 'Read every file in src/controllers and explain each line to a teammate', 'Write one new unit test in the style of test_lka_core.m']],
+  ['Week 2 · Simulink', ['Stateflow Onramp and Control Design Onramp with Simulink', 'Build a small bicycle model from blocks (Integrator + MATLAB Function)', 'Read buildPerception and buildSupervisor in scripts/build_lka_models.m']],
+  ['Week 3 · Vehicle and control', ['Rajamani, Vehicle Dynamics and Control, chapter 2 (bicycle model)', 'Change the look-ahead table, run S1 and S5, compare lka_mil_kpis.csv', 'Switch LKA.ControllerSelect to 2 and 3 and compare']],
+  ['Week 4 · Camera and vision', ['Image Processing, Computer Vision and Deep Learning Onramps', 'MathWorks example "Visual Perception Using Monocular Camera"', 'Run run_detector_benchmark() and explain the table', 'Add one new lane shape to test_vision_tight_track.m']]
+];
+function renderPlan() {
+  const ticks = store.get('lka-plan', {}), box = $('#planBox'); box.replaceChildren();
+  let n = 0, done = 0;
+  PLAN.forEach(([title, items], gi) => {
+    const card = document.createElement('div'); card.className = 'card stack';
+    const h = document.createElement('h3'); h.textContent = title; card.appendChild(h);
+    items.forEach((t, ii) => {
+      const id = `p${gi}_${ii}`; n++; if (ticks[id]) done++;
+      const row = document.createElement('label'); row.className = 'todo' + (ticks[id] ? ' done' : '');
+      const cb = document.createElement('input'); cb.type = 'checkbox'; cb.id = id; cb.checked = !!ticks[id];
+      cb.addEventListener('change', () => { const tk = store.get('lka-plan', {}); tk[id] = cb.checked; store.set('lka-plan', tk); renderPlan(); });
+      const sp = document.createElement('span'); sp.textContent = t;
+      row.append(cb, sp); card.appendChild(row);
+    });
+    box.appendChild(card);
+  });
+  $('#planCount').textContent = `${done} of ${n} steps done`;
+  $('#planBar').style.width = (100 * done / n) + '%';
+}
+$('#planReset').addEventListener('click', () => { store.set('lka-plan', {}); renderPlan(); });
+renderPlan();
+
+/* ---------------------------------------------------------------- quiz */
+const QUIZ = [
+  ['Our Baja has a 1.45 m wheelbase and steers 10°. What is its turning radius?', ['1.45 m', '8.2 m', '14.5 m', '82 m'], 1, 'R = L / tan(δ) = 1.45 / tan(10°) = 1.45 / 0.176 = 8.2 m.'],
+  ['A curvature of 0.2 1/m means a radius of...', ['0.2 m', '2 m', '5 m', '20 m'], 2, 'Curvature is 1 / radius, so 1 / 0.2 = 5 m. Bigger curvature = tighter bend.'],
+  ['Why did the college lane come out almost straight?', ['The camera was too dark', 'Short stretches of paint were fitted with a straight line or a single arc', 'The GPU was too slow', 'The Kalman filter removed the bends'], 1, 'The fit picked straight below 8 m and one arc below 15 m; an S averages to nearly straight. The Kalman filter was tested and is not a cause.'],
+  ['In this project (ISO 8855), a positive y value means...', ['to the right', 'to the left', 'upwards', 'backwards'], 1, 'x points forward, y points left, z up. Positive angles, curvature and steering all mean "turning left".'],
+  ['What must you run first after opening MATLAB?', ["run('config/startup.m')", 'build_lka_models()', "runtests('tests')", 'start_lka_dashboard()'], 0, 'startup.m adds every folder to the path and loads the parameters and buses. Without it most functions are "Unrecognized".'],
+  ['Why should you not edit the .slx models by hand?', ['They are read-only files', 'They are generated by scripts; a rebuild would erase your change', 'Simulink cannot save them', 'They are too large'], 1, 'build_lka_models.m creates every block. Change the script, then rebuild.'],
+  ['What is LaneSensorBus?', ['A USB camera', 'One Simulink wire carrying the left line, the right line and a valid flag', 'A MATLAB toolbox', 'The CAN bus of the Baja'], 1, 'A bus is a bundle of named signals on one wire. Every lane detector fills this same bus, so the controller does not care which one is used.'],
+  ['You have a video of the official aBaja track. Which setting do you use?', ["TrackProfile='tight'", "TrackProfile='official'", 'MinRadius=0', 'No option exists'], 1, 'The tight profile is the default for the college lane; the official track has 127 m bends and 3.5 m lanes.'],
+  ['Pure pursuit with a longer look-ahead distance steers...', ['more sharply', 'more gently, but cuts corners more', 'exactly the same', 'only on straights'], 1, 'κ ≈ 2·y / Ld²: a bigger Ld gives a smaller correction. The code shortens Ld in bends to limit corner cutting.'],
+  ['The lane centre is 0.5 m to the left, look-ahead 4 m, everything else zero. Roughly what radius does pure pursuit ask for?', ['4 m', '8 m', '16 m', '64 m'], 2, 'κ = 2·0.5 / (16 + 0.25) = 0.0615 1/m, so R ≈ 16 m to the left. Try it in the Steering lab.'],
+  ['What does StraightAlarm = true in summary.csv tell you?', ['The car drove straight', 'In 10 % of the lines the fitted line is more than 0.25 m off the paint', 'The video has no bends', 'The GPU overheated'], 1, 'It compares each fit with the paint traced without any curve formula. It is the guard that keeps the straight-line problem from coming back.'],
+  ['The phone camera first sees the road about 4–6 m ahead. What does that mean on a 5 m radius bend?', ['Nothing', 'Much of the bend is out of view, so a better mount helps as much as code', 'The car must drive faster', 'The Kalman filter fixes it'], 1, 'On a very tight bend the lane leaves the picture sideways before the camera sees it. A higher or more tilted mount, or a wider lens, gives the software more road.']
+];
+function renderQuiz() {
+  const answers = store.get('lka-quiz', {}), box = $('#quizBox'); box.replaceChildren();
+  let right = 0, done = 0;
+  QUIZ.forEach(([qq, opts, ok, why], i) => {
+    const card = document.createElement('div'); card.className = 'card q';
+    const h = document.createElement('b'); h.textContent = `${i + 1}. ${qq}`; card.appendChild(h);
+    const list = document.createElement('div'); list.className = 'opts';
+    const a = answers[i];
+    if (a !== undefined) { done++; if (a === ok) right++; }
+    opts.forEach((o, j) => {
+      const b = document.createElement('button'); b.className = 'opt'; b.textContent = o;
+      if (a !== undefined) { if (j === ok) b.classList.add('right'); else if (j === a) b.classList.add('wrong'); b.disabled = true; }
+      b.addEventListener('click', () => { const an = store.get('lka-quiz', {}); an[i] = j; store.set('lka-quiz', an); renderQuiz(); });
+      list.appendChild(b);
+    });
+    card.appendChild(list);
+    if (a !== undefined) { const w = document.createElement('p'); w.className = 'why'; w.textContent = (a === ok ? 'Right. ' : 'Not quite. ') + why; card.appendChild(w); }
+    box.appendChild(card);
+  });
+  $('#quizScore').textContent = `${right} right out of ${done} answered (${QUIZ.length} questions)`;
+}
+$('#quizReset').addEventListener('click', () => { store.set('lka-quiz', {}); renderQuiz(); });
+renderQuiz();
+
+/* ---------------------------------------------------------------- glossary */
+const GLOSS = [
+  ['Actuator', 'The motor that physically turns the steering.'], ['AEB', 'Automatic Emergency Braking; a separate system inside the organisers\' model.'],
+  ['Base workspace', 'The variables in MATLAB\'s Workspace panel; models read their settings from it.'], ['Bicycle model', 'A car model with one front and one rear wheel; enough to predict turning.'],
+  ['Bird\'s-eye view (BEV)', 'The camera image re-drawn as seen from above, in metres.'], ['Bus', 'One Simulink wire carrying many named signals.'],
+  ['Camera-in-the-loop', 'Simulation where Unreal renders camera images and the real detector reads them.'], ['Clothoid', 'A curve whose bend changes steadily with distance; roads are built from them.'],
+  ['CNN', 'Convolutional neural network; the kind of AI used for images.'], ['Curvature (κ)', '1 / radius; how sharply a path bends. Positive = left.'],
+  ['DLC / TLC', 'Distance / time to line crossing.'], ['DQ', 'Disqualification: all four wheels out, a manual take-over, or above 33 km/h.'],
+  ['Feed-forward', 'Steering added because the road bends, before any error appears.'], ['Field of view (FOV)', 'How wide the camera sees, in degrees.'],
+  ['Fixed-step solver (ode4)', 'Simulink computes the physics in equal 5 ms steps.'], ['Ground truth', 'The true answer known by the simulator; allowed for scoring, not for steering.'],
+  ['Heading angle', 'Angle between the car\'s nose and the lane direction.'], ['Huber weighting', 'A curve fit that trusts points near the curve and down-weights far ones.'],
+  ['Hysteresis', 'Separate on and off thresholds so a mode does not flicker.'], ['ISO 8855', 'Axis rule: x forward, y left, z up, left turns positive.'],
+  ['Kalman filter', 'Blends a prediction with each new measurement for a smooth, gap-free estimate.'], ['KPI', 'Key performance indicator: a number that says how well a run went.'],
+  ['Latency', 'Delay between taking a picture and acting on it (50 ms here).'], ['LKA', 'Lane keeping assist: the system this repository builds.'],
+  ['Look-ahead distance', 'How far ahead the controller aims on the lane centre.'], ['MATLAB Function block', 'A Simulink block that runs MATLAB code.'],
+  ['MIL', 'Model-in-the-loop: controller and car both simulated, no images.'], ['Model reference', 'A whole Simulink model used as one block in another.'],
+  ['MPC', 'Model predictive control: plan the next seconds, apply the first step, repeat.'], ['ONNX', 'File format for trained networks, shared between PyTorch and MATLAB.'],
+  ['Open loop / closed loop', 'Whether the car reacts to the steering (closed) or not (open, like a recorded video).'], ['Pitch', 'How far the camera tilts down.'],
+  ['Probability map', 'Image where brightness = how sure the detector is that a pixel is paint.'], ['Pure pursuit', 'Steer along the circle that reaches a point on the lane centre ahead.'],
+  ['Rate limit', 'A cap on how fast a signal may change.'], ['RoadRunner', 'MathWorks road and scenario editor used by the competition model.'],
+  ['Sample time', 'How often a block updates (0.05 s for the controller).'], ['Saturation', 'Clamping a value to a range.'],
+  ['ShapeError / StraightAlarm', 'New: how far each fitted line is from the traced paint; alarm above 0.25 m.'], ['Stanley', 'A steering law using heading error plus a cross-track correction.'],
+  ['Stateflow', 'MathWorks tool for drawing state machines inside Simulink.'], ['Struct', 'A MATLAB variable that groups named values, like LKA.PP.LdMin.'],
+  ['Subsystem', 'A group of blocks folded into one box.'], ['System object', 'A MATLAB class with memory between steps; used for the detector block.'],
+  ['Tight-track profile', 'New: lka_set_track_profile(LKA, \'tight\') tunes the camera chain for 3-8 m bends.'], ['TuSimple', 'A public dataset of US highway images; the team CNN learned from it.'],
+  ['Turning radius (R)', 'Radius of the circle the car drives. 1000 m in this code means straight.'], ['UFLDv2', 'Ultra Fast Lane Detection v2: the team\'s CNN.'],
+  ['Understeer', 'The car turning less than the wheel angle asks for, growing with speed.'], ['Unit Delay', 'Simulink block that outputs last step\'s value (memory).'],
+  ['Variant subsystem', 'A block with several versions inside; a variable picks one (LKA_LANE_SOURCE).'], ['ViewRange', 'How far ahead a fitted line is backed by paint.'],
+  ['Visual odometry', 'Estimating speed and turning from how the road texture moves between frames.'], ['Yaw rate', 'How fast the car\'s heading changes, degrees per second.'],
+  ['YOLOP', 'A 2025 network that segments lane lines; trained on dashcam video.']
+];
+function renderGloss() {
+  const q2 = $('#gSearch').value.trim().toLowerCase(), box = $('#gBox'); box.replaceChildren();
+  const hits = GLOSS.filter(([t, m]) => !q2 || t.toLowerCase().includes(q2) || m.toLowerCase().includes(q2));
+  hits.forEach(([t, m]) => { const a = document.createElement('div'); a.className = 't'; a.textContent = t; const b = document.createElement('div'); b.textContent = m; box.append(a, b); });
+  if (!hits.length) { const a = document.createElement('div'); a.className = 'muted'; a.textContent = 'No match. Try a shorter word.'; box.appendChild(a); }
+}
+$('#gSearch').addEventListener('input', renderGloss);
+renderGloss();
+
+/* ---------------------------------------------------------------- start */
+const fromHash = (location.hash || '').replace('#', '');
+show(views.some(v => v.id === fromHash) ? fromHash : store.get('lka-tab', 'start'));
+})();
+</script>
+
+</body>
+</html>

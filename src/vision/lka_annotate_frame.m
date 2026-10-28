@@ -24,34 +24,46 @@ function frame = lka_annotate_frame(img, preview, sensor, hud, cam, extra)
     end
     frame = img;
     [H, W, ~] = size(img);
-    xs = linspace(cam.XNear, cam.XFar, 40)';
     sides = {'Left', 'Right'};
     colors = {[40 220 60], [0 160 255]};
+    yOf = @(b, x) b.LateralOffset + tan(b.HeadingAngle) * x + b.Curvature / 2 * x.^2 + b.CurvatureDerivative / 6 * x.^3;
+    % Each line is drawn only as far as its fit has paint behind it (ViewRange). Drawn to
+    % XFar, a fit of the first metres of a bend looked like a long straight lane.
+    found = [sensor.Left.Strength > 0, sensor.Right.Strength > 0];
+    xEnd = cam.XFar * [1 1];
+    xb = cell(1, 2);
     yb = cell(1, 2);
     for k = 1:2
         b = sensor.(sides{k});
-        if b.Strength > 0
-            yb{k} = b.LateralOffset + tan(b.HeadingAngle) * xs + b.Curvature / 2 * xs.^2 + b.CurvatureDerivative / 6 * xs.^3;
+        if found(k)
+            if b.ViewRange > cam.XNear
+                xEnd(k) = min(cam.XFar, b.ViewRange);
+            end
+            xb{k} = linspace(cam.XNear, xEnd(k), 40)';
+            yb{k} = yOf(b, xb{k});
         end
     end
 
-    % ego lane fill and centre line
-    if ~isempty(yb{1}) && ~isempty(yb{2})
-        uvL = project(cam, xs, yb{1}, H, W);
-        uvR = project(cam, xs, yb{2}, H, W);
+    % ego lane fill and centre line, up to the shorter of the two fits
+    if all(found)
+        xs = linspace(cam.XNear, min(xEnd), 40)';
+        yL = yOf(sensor.Left, xs);
+        yR = yOf(sensor.Right, xs);
+        uvL = project(cam, xs, yL, H, W);
+        uvR = project(cam, xs, yR, H, W);
         poly = [uvL; flipud(uvR)];
         if size(poly, 1) >= 3 && all(isfinite(poly(:)))
             frame = insertShape(frame, 'FilledPolygon', reshape(poly', 1, []), 'Color', [0 200 80], 'Opacity', 0.22);
         end
-        uvC = project(cam, xs, (yb{1} + yb{2}) / 2, H, W);
+        uvC = project(cam, xs, (yL + yR) / 2, H, W);
         for i = 1:2:size(uvC, 1) - 1
             frame = insertShape(frame, 'Line', [uvC(i, :) uvC(i + 1, :)], 'Color', [255 220 0], 'LineWidth', 3);
         end
     end
     % detected lines
     for k = 1:2
-        if ~isempty(yb{k})
-            uv = project(cam, xs, yb{k}, H, W);
+        if found(k)
+            uv = project(cam, xb{k}, yb{k}, H, W);
             if size(uv, 1) >= 2
                 frame = insertShape(frame, 'Line', reshape(uv', 1, []), 'Color', colors{k}, 'LineWidth', 5);
             end
@@ -83,8 +95,8 @@ function frame = lka_annotate_frame(img, preview, sensor, hud, cam, extra)
     pv = imresize(pv, sc, 'nearest');
     [ph, pw, ~] = size(pv);
     for k = 1:2
-        if ~isempty(yb{k})
-            r = interp1(cam.RowX, 1:numel(cam.RowX), xs, 'linear', NaN) * ph / numel(cam.RowX);
+        if found(k)
+            r = interp1(cam.RowX, 1:numel(cam.RowX), xb{k}, 'linear', NaN) * ph / numel(cam.RowX);
             c = interp1(cam.ColY, 1:numel(cam.ColY), yb{k}, 'linear', NaN) * pw / numel(cam.ColY);
             ok = isfinite(r) & isfinite(c);
             if nnz(ok) >= 2

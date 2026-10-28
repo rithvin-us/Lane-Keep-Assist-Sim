@@ -81,6 +81,8 @@ function LKA = lka_build_params(profile, vehicle, sensor)
     Val.HeadingMax    = deg2rad(35);     % Max |relative heading| [rad]
     Val.CurvatureMax  = 0.1;             % Max |curvature| (R = 10 m) [1/m]
     Val.JumpMax       = 0.6;             % Max frame-to-frame offset jump of an accepted boundary [m]
+    Val.CheckX        = 0;               % Distance ahead of the rear axle where side, heading,
+                                         % curvature and width are checked [m] (tight tracks: 4)
     LKA.Val = Val;
 
     % ------------------------------------- Lane state tracker (Kalman filter)

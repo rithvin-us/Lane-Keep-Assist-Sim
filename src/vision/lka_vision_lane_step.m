@@ -39,6 +39,10 @@ function [sensor, state, info] = lka_vision_lane_step(bevProb, cam, V, state, dt
     bevProb = double(gather(bevProb));
     names = {'Left', 'Right'};
     sides = [1, -1];
+    xCheck = 0;
+    if isfield(V.Track, 'CheckAtNear') && V.Track.CheckAtNear
+        xCheck = cam.XNear;
+    end
     W = state.Width;
     found = false(1, 2);
     bnd = cell(1, 2);
@@ -83,9 +87,13 @@ function [sensor, state, info] = lka_vision_lane_step(bevProb, cam, V, state, dt
                 [b, ok] = lka_fit_boundary(pts, V.Fit, zeros(1, 4));
             end
             % side check at the first visible row: on tight bends the boundary extrapolated
-            % back to the rear axle can end up on the other side of the vehicle axis
-            found(k) = ok && abs(b.HeadingAngle) <= V.Track.HeadingMax ...
-                && abs(b.Curvature) <= V.Track.CurvatureMax && sides(k) * yAt(b, cam.XNear) > 0;
+            % back to the rear axle can end up on the other side of the vehicle axis.
+            % Heading and curvature are checked at the rear axle (x = 0) or, with
+            % Track.CheckAtNear, at the first visible row where the line was measured: on
+            % a 3-8 m radius bend the 4-6 m extrapolation back to the axle exaggerates both.
+            [head, curv] = shapeAt(b, xCheck);
+            found(k) = ok && abs(head) <= V.Track.HeadingMax ...
+                && abs(curv) <= V.Track.CurvatureMax && sides(k) * yAt(b, cam.XNear) > 0;
             bnd{k} = b;
             if found(k)
                 break
@@ -146,6 +154,13 @@ end
 
 function y = yAt(b, x)
     y = b.LateralOffset + tan(b.HeadingAngle) * x + b.Curvature / 2 * x.^2 + b.CurvatureDerivative / 6 * x.^3;
+end
+
+function [head, curv] = shapeAt(b, x)
+% Heading [rad] and curvature [1/m] of the boundary polynomial at distance x (x = 0: the
+% bus values themselves).
+    head = atan(tan(b.HeadingAngle) + b.Curvature * x + b.CurvatureDerivative / 2 * x^2);
+    curv = b.Curvature + b.CurvatureDerivative * x;
 end
 
 function y = nearestPeak(bevProb, cam, side, S)

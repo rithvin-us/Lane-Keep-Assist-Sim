@@ -550,6 +550,82 @@ College-track clips (2026-10-16, team CNN, GPU, about 30 ms per frame):
   lines were found in 42 % of the frames instead of 60 % (the college kerb is painted white
   too).
 
+### 9.1 Tight tracks: why the college lane came out straight (fixed 2026-10-16)
+
+![Current settings (red) vs tight-track settings (green) on the college clips](images/college_track_before_after.jpg)
+
+**Symptom.** On the three college clips the detected lane (green area in the annotated videos)
+stayed almost straight while the painted snake lane bends at R ≈ 3–8 m. The detected curvature
+was 10–20 % of the real one, and on clip 12.23.27 one fitted line in ten was more than 1.6 m off
+the paint 9 m beyond the first visible road row.
+
+**Cause.** Every camera setting was tuned for the official track (3.5 m lanes, R 127 m and
+257 m). On a 2 m lane with R 3–8 m S-bends five of them straighten the lane, and they add up:
+
+| # | Setting (official values) | Effect on the snake lane | Where |
+|---|---|---|---|
+| 1 | Fit degree from the span: line < 8 m ≤ parabola < 15 m ≤ cubic | One parabola over 4–20 m averages two or three bends to ~0 curvature. **The main cause.** | `lka_fit_boundary.m`, `Fit.QuadSpan`, `Fit.CubicSpan` |
+| 2 | Next search window from a straight line through the last 6 peaks | The search leaves a tight bend after a few slices and stops; only the straight start is fitted. | `lka_search_boundary.m` |
+| 3 | `Track.CurvatureMax` and `Val.CurvatureMax` = 0.1 1/m (R ≥ 10 m) | A correct fit of a tighter bend would be thrown away, twice. | `lka_vision_params.m`, `lka_build_params.m` |
+| 4 | Heading / curvature checked at the rear axle | 4–6 m of extrapolation behind the first visible row exaggerates both on a tight bend. | `lka_vision_lane_step.m` |
+| 5 | Controller checks side, width and jumps at the rear axle | With 1–4 fixed it still dropped one or both lines in 23–63 % of the frames. | `lka_validate_boundaries.m` |
+
+Not causes (checked): the lane Kalman filter (400× more curvature process noise changed the
+lane-centre curvature by < 1 %), and the curvature gates alone (the fit never produced a curvature
+above them).
+
+**Fix.** `lka_set_track_profile(LKA, 'tight', MinRadius=3)` switches all five; the defaults are
+unchanged, so the official track and every result above stay as they were (checked: the edited
+functions give bit-identical outputs with the default settings on 36 synthetic frames). The video
+tool uses the tight profile by default (`TrackProfile='official'` for a video of the official track).
+
+| Setting | Official (default) | Tight |
+|---|---|---|
+| Fit degree | parabola ≥ 8 m, cubic ≥ 15 m | parabola ≥ 3 m, cubic ≥ 6 m |
+| Fitted range | whole search | cut back 1 m at a time until the line centre (every 0.5 m) is within 4 cm of the fit for 90 % of the range (`Fit.AdaptiveRange`, `Fit.MaxResidual`, at least 5 m); paint width and noise average out |
+| Search prediction | straight line | parabola (`Search.PredictQuadratic`), window +0.15 m per missed slice |
+| Curvature gates | 0.1 1/m | 1 / (0.8 · MinRadius) = 0.42 1/m |
+| Camera chain checks | at the rear axle | at the first visible row (`Track.CheckAtNear`), heading ≤ 50° |
+| Controller checks | at the rear axle, jump 0.6 m | 4 m ahead (`Val.CheckX`), jump 1.0 m |
+
+**Result** (Python replica of the camera chain with the classic detector on the three clips, against
+the painted line traced without a curve model; the MATLAB run with the team CNN must be repeated):
+
+| Clip | Fit vs paint, 90th percentile, 3 / 5 m past the first visible row | Lane-centre curvature, 90th percentile | Both lines accepted by the controller |
+|---|---|---|---|
+| 12.23.27 | 0.17 / 0.42 m → **0.05 / 0.15 m** | 0.038 → **0.147** 1/m | 69 % → **94 %** |
+| 12.23.27 (1) | 0.06 / 0.07 m → **0.03 / 0.02 m** | 0.020 → **0.092** 1/m | 89 % → **94 %** |
+| 12.23.28 | 0.17 / 0.22 m → **0.03 / 0.05 m** | 0.035 → **0.150** 1/m | 47 % → **81 %** |
+
+The tight fits stop where one cubic can no longer follow the paint (`ViewRange`), so the preview is
+shorter: on clip 12.23.27 the fit reaches 7 m past the first visible row in about 40 % of the frames
+(the other clips: 69–96 %). The annotated video now draws each line only up to its `ViewRange`.
+
+**So it cannot come back unnoticed.**
+- `tests/unit_tests/test_vision_tight_track.m`: synthetic snake lanes (no camera toolbox); fails if a
+  tight lane is fitted straight, or if the default settings stop reproducing the official behaviour.
+- Straight-lane alarm: every video frame gets `LeftShapeError_m` / `RightShapeError_m`, the largest
+  distance between the fitted line and the painted line traced without a curve model
+  (`lka_lane_shape_error.m`, `lka_trace_line.m`). `test_res/summary.csv` gets `ShapeErrorP90_m` and
+  `StraightAlarm` (> 0.25 m), and the video tool warns.
+- `run_lka_checks(Level='full')` runs the tests and every video and fails on an alarm.
+
+**Remaining limits.** The phone camera sees the road from 4–6 m ahead of the rear axle; on a bend
+tighter than about R 6 m the lane leaves the image sideways before the camera sees it. A higher or more
+tilted mount or a wider lens helps more than any software setting. The lane-centre fusion
+(`lka_estimate_lane_center.m`) still shifts each line by half a lane width with the heading at the
+rear axle, an approximation on tight bends. The CNN (TuSimple) still cuts corners; fine-tuning is
+`team_actions.md` item 8.
+
+### 9.2 Automation
+
+| Command | What it does |
+|---|---|
+| `run_lka_pick_video()` | File dialog → run → overview figure and annotated video open. For newcomers. |
+| `watch_lka_videos()` | Background watcher: every video copied into `vids/` is processed within 30 s (`Stop=true` to end). |
+| `run_lka_checks()` / `run_lka_checks(Level='full')` | Unit tests (+ MIL closed loop + all videos with the straight-lane alarm), report in `results/checks/`. |
+| `tools\run_lka.bat [videos\|watch\|checks\|full]`, `tools/run_lka.sh` | The same without opening MATLAB (`matlab -batch`); schedule `watch` or `full` with Windows Task Scheduler or cron. |
+
 ## 10. Live dashboard
 
 ```matlab

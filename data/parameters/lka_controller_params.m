@@ -9,6 +9,8 @@
 %                'skeleton' for the aBaja2026.slx RoadRunner co-simulation).
 %                Optional base variable lkaLaneWidth [m]: lane width of another track
 %                (default 3.5 m, the official LKA track; lka_set_lane_width).
+%                Optional base variables lkaTrackProfile ('tight') and lkaMinRadius [m]:
+%                tight test lane such as the college snake track (lka_set_track_profile).
 %   controller - legacy gains used by scripts/run_baseline_simulation.m and
 %                the script-based Stanley / pure pursuit functions.
 %
@@ -24,6 +26,14 @@ end
 LKA = lka_build_params(lkaProfile, vehicle, sensor);
 if exist('lkaLaneWidth', 'var') && ~isempty(lkaLaneWidth)
     LKA = lka_set_lane_width(LKA, lkaLaneWidth);
+end
+% Optional base variable lkaTrackProfile ('official' default | 'tight' for a painted test
+% lane with bends down to lkaMinRadius [m], default 3): lka_set_track_profile.
+if exist('lkaTrackProfile', 'var') && ~isempty(lkaTrackProfile)
+    if ~exist('lkaMinRadius', 'var') || isempty(lkaMinRadius)
+        lkaMinRadius = 3;
+    end
+    LKA = lka_set_track_profile(LKA, lkaTrackProfile, MinRadius=lkaMinRadius);
 end
 
 % Lane source of the competition model (variant control of "Lane Source" in aBaja2026.slx):

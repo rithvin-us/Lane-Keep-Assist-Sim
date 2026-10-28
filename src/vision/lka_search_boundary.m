@@ -12,6 +12,14 @@ function [pts, nHit] = lka_search_boundary(bevProb, cam, prior, S)
 % line through the last (up to 6) slice peaks. A cold prior (no previous fit) keeps the
 % window on its own side of the vehicle (|y| > MinCenterDist) until the first hit.
 %
+% Tight tracks (lka_set_track_profile 'tight'; the defaults keep the behaviour above):
+%   S.PredictQuadratic = true the next window follows a parabola through the last (up to 5)
+%                             peaks, its bend limited to S.PredictCurvatureMax [1/m]. A
+%                             straight-line prediction leaves a 3-8 m radius bend within
+%                             a few slices, the search stops and the fit sees only the
+%                             straight start of the bend.
+%   S.ReacquireGrow [m]       the window widens by this much per missed slice, so the
+%                             line is found again after a gap in a bend.
 % With S.TaperExp > 0 the two pixel-count thresholds follow the range: the same painted
 % ground area maps from fewer camera pixels the further away it is, so beyond S.TaperRef
 % the required slice mass is divided by (x/TaperRef)^TaperExp and the half-width that
@@ -29,11 +37,15 @@ function [pts, nHit] = lka_search_boundary(bevProb, cam, prior, S)
 
     rowX = cam.RowX;
     colY = cam.ColY;
+    quadratic = optField(S, 'PredictQuadratic', false);
+    kPredMax = optField(S, 'PredictCurvatureMax', 0.5);
+    grow = optField(S, 'ReacquireGrow', 0);
     edges = cam.XNear:S.SliceLength:cam.XFar;
     pts = zeros(0, 3);
     nHit = 0;
     px = zeros(1, 0); py = zeros(1, 0);    % slice peaks found so far
     gap = 0;
+    misses = 0;                            % consecutive slices without a hit
     for k = 1:numel(edges) - 1
         rows = rowX >= edges(k) & rowX < edges(k + 1);
         if ~any(rows)
@@ -48,7 +60,11 @@ function [pts, nHit] = lka_search_boundary(bevProb, cam, prior, S)
             halfLine = min(S.LineHalfWidthMax, halfLine * f);
         end
         yc = expected(xMid);
-        cols = colY >= yc - prior.HalfWidth & colY <= yc + prior.HalfWidth;
+        halfWidth = prior.HalfWidth;
+        if ~isempty(px)
+            halfWidth = halfWidth + grow * misses;
+        end
+        cols = colY >= yc - halfWidth & colY <= yc + halfWidth;
         if prior.Cold && isempty(px)
             % first hit only: on a tight curve the line may later cross the vehicle axis
             cols = cols & prior.Side * colY > S.MinCenterDist;
@@ -72,12 +88,14 @@ function [pts, nHit] = lka_search_boundary(bevProb, cam, prior, S)
         end
         if best == 0
             gap = gap + S.SliceLength;
+            misses = misses + 1;
             if gap > S.MaxGap && nHit > 0
                 break
             end
             continue
         end
         gap = 0;
+        misses = 0;
         nHit = nHit + 1;
         px(end + 1) = xMid; py(end + 1) = yPeak; %#ok<AGROW>
         [r, cc] = find(block);
@@ -90,7 +108,13 @@ function [pts, nHit] = lka_search_boundary(bevProb, cam, prior, S)
     end
 
     function y = expected(xq)
-        if numel(px) >= 3
+        if quadratic && numel(px) >= 4
+            n = min(numel(px), 5);
+            x0 = px(end);
+            p = polyfit(px(end - n + 1:end) - x0, py(end - n + 1:end), 2);
+            p(1) = min(max(p(1), -kPredMax / 2), kPredMax / 2);   % y'' = curvature
+            y = polyval(p, xq - x0);
+        elseif numel(px) >= 3
             n = min(numel(px), 6);
             p = polyfit(px(end - n + 1:end), py(end - n + 1:end), 1);
             y = polyval(p, xq);
@@ -99,5 +123,14 @@ function [pts, nHit] = lka_search_boundary(bevProb, cam, prior, S)
         else
             y = prior.Fun(xq);
         end
+    end
+end
+
+function v = optField(s, name, default)
+% Field of a calibration struct, or the default for structs built before the field existed.
+    if isfield(s, name)
+        v = s.(name);
+    else
+        v = default;
     end
 end

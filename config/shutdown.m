@@ -8,7 +8,8 @@ fprintf('\n[LKA System] Shutting down environment...\n');
 projectRoot = fileparts(fileparts(mfilename('fullpath')));
 
 % Close all open LKA Simulink models without saving uncommitted changes
-lkaModels = {'LKA_MIL_TestBench', 'LKA_Controller', 'VirtualLaneSensor', 'aBaja2026'};
+lkaModels = {'LKA_MIL_TestBench', 'LKA_Vision_TestBench', 'LKA_Replay_Harness', 'LKA_Controller', ...
+    'VirtualLaneSensor', 'aBaja2026'};
 for i = 1:numel(lkaModels)
     if bdIsLoaded(lkaModels{i})
         close_system(lkaModels{i}, 0);
@@ -36,6 +37,11 @@ pathsToRemove = {
     fullfile(projectRoot, 'src', 'utilities');
     fullfile(projectRoot, 'src', 'plant');
     fullfile(projectRoot, 'src', 'evaluation');
+    fullfile(projectRoot, 'src', 'vision');
+    fullfile(projectRoot, 'src', 'sensors');
+    fullfile(projectRoot, 'src', 'legacy');
+    fullfile(projectRoot, 'models', 'perception');
+    fullfile(projectRoot, 'tests', 'helpers');
     fullfile(projectRoot, 'scripts');
     fullfile(projectRoot, 'tests');
     fullfile(projectRoot, 'tests', 'unit_tests');

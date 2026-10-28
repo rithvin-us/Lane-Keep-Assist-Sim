@@ -114,6 +114,10 @@ function V = lka_vision_params(profile)
     V.Search.SeedHalfWidth = 0.6;    % ... is searched +- this [m] (lane width not assumed)
     V.Search.SeedFirst     = false;  % cold order: nominal lane first, nearest line as fallback;
                                      % true while the lane width is unknown (auto-calibration)
+    V.Search.PredictQuadratic = false;  % next window from a line through the last peaks;
+                                        % true: a parabola, follows tight bends (lka_set_track_profile)
+    V.Search.PredictCurvatureMax = 0.5; % bend limit of the parabola prediction [1/m]
+    V.Search.ReacquireGrow = 0;      % window widening per missed slice [m]
     V.Search.SeedFirstWhenUnseeded = false;  % that order only until a pair sets the width
     V.Search.ColdHalfWidthFromWidth = false; % cold window from the tracked width, not 1.3 m
     V.Search.TaperExp      = 0;      % > 0 lets the slice thresholds follow the range.
@@ -136,6 +140,10 @@ function V = lka_vision_params(profile)
     V.Fit.Iterations       = 3;
     V.Fit.FullStrengthSpan = 12;              % span that gives full strength [m]
     V.Fit.ProbFull         = 0.7;             % mean probability that gives full strength
+    V.Fit.AdaptiveRange    = false;           % cut the fitted range back until the polynomial
+                                              % follows the line (tight tracks, lka_fit_boundary)
+    V.Fit.MaxResidual      = 0.04;            % 90th percentile line-centre distance allowed then [m]
+    V.Fit.MinRange         = 5;               % shortest fitted span then [m]
     V.Fit.ConsistencyWeight = 0.3;            % mixes the change since the previous frame
                                               % into Strength (lka_fit_boundary): both
                                               % lines in 96.5 % instead of 95.7 % of clip
@@ -156,7 +164,12 @@ function V = lka_vision_params(profile)
     V.Track.WidthMin     = 2.5;               % [m]
     V.Track.WidthMax     = 5.0;               % [m]
     V.Track.HeadingMax   = deg2rad(35);       % [rad]
-    V.Track.CurvatureMax = 0.1;               % [1/m]
+    V.Track.CurvatureMax = 0.1;               % [1/m] (R 10 m; the official track bends at R 127 m+)
+    V.Track.CheckAtNear  = false;             % check heading / curvature at the first visible
+                                              % row instead of the rear axle (tight tracks)
+    V.Track.CurvatureMax = 0.1;               % [1/m] (R 10 m; the official track bends at R 127 m+)
+    V.Track.CheckAtNear  = false;             % check heading / curvature at the first visible
+                                              % row instead of the rear axle (tight tracks)
     V.Track.TrustFrames  = 1;                 % consecutive plausible fits before a side is
                                               % reported (1 = every plausible fit). 2 cost
                                               % 0.5 and 3.1 points of both-lines ratio on

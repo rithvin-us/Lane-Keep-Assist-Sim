@@ -64,6 +64,8 @@ results/monitor/
 __pycache__/
 *.pyc
 
+# Local check reports and their video results (run_lka_checks)
+results/checks/
 # LaneAssist (tsiggi, MIT): read-only reference for the detector comparison, see
 # docs/laneassist_comparison.md
 LaneAssist/

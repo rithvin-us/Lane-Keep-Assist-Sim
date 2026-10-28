@@ -13,7 +13,11 @@ function S = run_lka_on_test_videos(options)
 %   lka_video_overview.png    lane position, heading, radius, steering, speed, yaw
 %   lka_video_path.png        path from visual odometry with the detected lines
 %   lka_video_results.csv     one row per processed frame (20 Hz)
-% plus OutRoot/summary.csv: one row per video (detection rates, speed, yaw, radius).
+% plus OutRoot/summary.csv: one row per video (detection rates, speed, yaw, radius, and
+% the straight-lane alarm: ShapeErrorP90_m = distance between the fitted and the painted
+% lines that 90 % of the lines stay within; StraightAlarm = true above 0.25 m).
+% TrackProfile / MinRadius go to run_lka_on_video ('tight', 3 m: the college snake track;
+% use 'official' for a video of the aBaja LKA track).
 % Summary only (no processing): S = run_lka_on_test_videos(Files={}).
 
     arguments
@@ -25,6 +29,8 @@ function S = run_lka_on_test_videos(options)
         options.CameraHeight (1,1) double = 1.2
         options.LaneWidth (1,1) double = NaN
         options.Video (1,1) logical = true
+        options.TrackProfile char {mustBeMember(options.TrackProfile, {'tight', 'official'})} = 'tight'
+        options.MinRadius (1,1) double {mustBePositive} = 3
     end
     root = fileparts(fileparts(mfilename('fullpath')));
     if isempty(options.Folder), options.Folder = fullfile(root, 'vids'); end
@@ -41,7 +47,8 @@ function S = run_lka_on_test_videos(options)
         [~, name] = fileparts(files{k});
         run_lka_on_video(fullfile(options.Folder, files{k}), Detector=options.Detector, Camera='auto', ...
             HFovDeg=options.HFovDeg, CameraHeight=options.CameraHeight, LaneWidth=options.LaneWidth, ...
-            OutDir=fullfile(options.OutRoot, name), Video=options.Video);
+            OutDir=fullfile(options.OutRoot, name), Video=options.Video, ...
+            TrackProfile=options.TrackProfile, MinRadius=options.MinRadius);
     end
 
     % ---------------- summary of every result folder in OutRoot
@@ -56,16 +63,26 @@ function S = run_lka_on_test_videos(options)
         active = T.LkaState == 2;
         steer = abs(T.SteerCmd_deg(active));
         rCmd = abs(T.TurnRadius_m(active));
+        shape = NaN; viewRange = NaN;             % columns added 2026-10-16 (older results: NaN)
+        if ismember('LeftShapeError_m', T.Properties.VariableNames)
+            e = [T.LeftShapeError_m; T.RightShapeError_m];
+            e = sort(e(isfinite(e)));
+            if ~isempty(e), shape = e(max(1, ceil(0.9 * numel(e)))); end
+            v = [T.LeftViewRange_m(T.LeftStrength > 0); T.RightViewRange_m(T.RightStrength > 0)];
+            if ~isempty(v), viewRange = median(v); end
+        end
         rows{k} = table(string(name), string(o.Detector), height(T), T.Time_s(end) - T.Time_s(1), ...
             o.Camera.PitchDeg, o.Camera.Height, getfieldOr(o, "LaneWidth", NaN), ...
             100 * mean(both), 100 * mean(T.LeftStrength > 0 | T.RightStrength > 0), 100 * mean(active), ...
             trapz(T.Time_s, T.Speed_mps), mean(T.Speed_kmh), max(T.Speed_kmh), ...
             max(abs(T.YawRate_degps)), max(T.YawAngle_deg) - min(T.YawAngle_deg), ...
             maxOrNaN(steer), minOrNaN(rCmd), minOrNaN(abs(T.RoadRadius_m(both))), ...
+            string(getfieldOr(o, "TrackProfile", "official")), viewRange, shape, shape > 0.25, ...
             'VariableNames', {'Video', 'Detector', 'Frames', 'Duration_s', 'CameraPitch_deg', ...
             'CameraHeight_m', 'LaneWidth_m', 'BothLines_pct', 'AnyLine_pct', 'LkaActive_pct', ...
             'Distance_m', 'MeanSpeed_kmh', 'MaxSpeed_kmh', 'MaxYawRate_degps', 'YawRange_deg', ...
-            'MaxSteerCmd_deg', 'MinTurnRadiusCmd_m', 'MinRoadRadius_m'});
+            'MaxSteerCmd_deg', 'MinTurnRadiusCmd_m', 'MinRoadRadius_m', ...
+            'TrackProfile', 'MedianViewRange_m', 'ShapeErrorP90_m', 'StraightAlarm'});
     end
     S = vertcat(rows{:});
     if ~isempty(S)

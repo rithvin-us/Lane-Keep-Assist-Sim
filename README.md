@@ -10,7 +10,7 @@ The repository follows **MathWorks Automotive Advisory Board (MAAB)** guidelines
 ## 1. Quickstart
 
 1. Launch MATLAB **R2026a** (the models are saved in R2026a; the competition skeleton needs R2025b or newer).
-2. Set your MATLAB working directory to the root of this repository (`LKA - Matlab/`).
+2. Set your MATLAB working directory to the root of this repository (the cloned `LKA---Simulink-/` folder).
 3. Initialise paths, parameters and bus objects:
    ```matlab
    run('config/startup.m')
@@ -44,27 +44,43 @@ The repository follows **MathWorks Automotive Advisory Board (MAAB)** guidelines
    ```matlab
    start_lka_dashboard();        % http://127.0.0.1:8050 (live run, GPU, results)
    run_lka_on_test_videos();     % every vids/*.mp4 -> test_res/<name>/ (MP4, PNG, CSV) + summary.csv
+   run_lka_pick_video();         % choose one video in a dialog, results open by themselves
+   watch_lka_videos();           % process every video copied into vids/ automatically
    ```
+   The video tools use the **tight-track profile** by default (2 m college lane, bends down to
+   R 3 m): with the official-track settings that lane was fitted almost straight
+   (`docs/lka_controller.md` §9.1). For a video of the official track pass `TrackProfile='official'`.
+   For a live test on the college track set `lkaLaneWidth = 2.0; lkaTrackProfile = 'tight';`
+   before `run('config/startup.m')`. See `docs/lka_controller.md` §9-10.
    Annotated video without MATLAB's VideoWriter (needed on a headless machine, see
    `requirements/system.md`): render the frames, then mux with ffmpeg. Examples from the
    college-track clips are in `test_res/<clip>/lka_annotated_<detector>.mp4`.
    See `docs/lka_controller.md` §9-10.
-9. When finished:
+9. One command to check everything after a change (also from a terminal: `tools/run_lka.bat checks`):
+   ```matlab
+   run_lka_checks();                 % all unit tests, report in results/checks/
+   run_lka_checks(Level='full');     % + closed-loop MIL tests + every video (straight-lane alarm)
+   ```
+10. When finished:
    ```matlab
    run('config/shutdown.m')
    ```
 
 How the LKA works (lane perception, supervisor, pure pursuit / Stanley 2025 / MPC,
 limits, turning radius): **[`docs/lka_controller.md`](docs/lka_controller.md)**.
+New to MATLAB or to the project: open **`docs/LKA_Learning_Lab.html`** in a browser (interactive
+lane-fit and steering labs, code reader, command builder, quiz, glossary) and
+`docs/LKA_Team_Guide.html`.
 What the team still has to measure, record, train or install:
 **[`docs/team_actions.md`](docs/team_actions.md)**.
+The stages after that, with owners and pass/fail gates: **[`docs/next_plan.md`](docs/next_plan.md)**.
 
 ---
 
 ## 2. Repository Layout
 
 ```plaintext
-LKA - Matlab/
+LKA---Simulink-/
 ├── config/              startup.m (paths, params, buses), shutdown.m
 ├── data/
 │   ├── bus_definitions/ create_lka_buses.m        LaneSensorBus, LaneEstimateBus, LkaInfoBus (+ legacy buses)
@@ -86,6 +102,9 @@ LKA - Matlab/
 │   └── utilities/       parameter builder, OpenDRIVE reader, road lookup
 ├── scripts/             build_lka_models, run_lka_mil, plot_lka_results, plot_lka_comparison,
 │                        integrate_lka_into_skeleton, run_baseline_simulation (legacy), evaluate_kpis (legacy)
+│                        run_lka_on_video, run_lka_on_test_videos, run_lka_pick_video, watch_lka_videos, run_lka_checks
+├── tools/               dashboard server, ONNX export / parity tools, run_lka.bat / run_lka.sh (matlab -batch),
+│                        finetune/ (college frames + labels → UFLDv2 training data, docs/team_actions.md item 8)
 ├── tests/               unit_tests/test_lka_core.m, scenario_tests/test_lka_mil_scenarios.m (+ legacy tests)
 ├── docs/                lka_controller.md (design), mathematical_models.md, references/
 ├── requirements/        MathWorks products, Python packages, system software (+ lka_check_requirements)
@@ -109,20 +128,19 @@ lka_check_requirements        % every product, package and file, and what is mis
 
 MATLAB **R2026a or newer**. Required for the MIL bench and the camera chain:
 
-- **MATLAB & Simulink**
-- **Automated Driving Toolbox** - `monoCamera` / `birdsEyeView`, Unreal co-simulation blocks
-- **Computer Vision Toolbox** - lane rasterisation and video annotation
-- **Image Processing Toolbox** - `imboxfilt`, `strel`, `bwlabel`
-- **Model Predictive Control Toolbox** + **Control System Toolbox** - the MPC controller.
-  Without it *no* Simulink model in this repository compiles, not even the pure-pursuit runs,
-  because the whole controller has to compile.
+The models and scripts in this repository use:
+- **MATLAB & Simulink**, **Stateflow** (LKA mode logic)
+- **Automated Driving Toolbox** (`monoCamera`, `birdsEyeView`, Simulation 3D / Unreal blocks)
+- **Control System Toolbox** (required by the MPC controller build chain)
+- **Model Predictive Control Toolbox** (`mpcActiveSetSolver` in the MPC controller)
+- **Computer Vision Toolbox** and **Image Processing Toolbox** (lane detector, annotated video)
+- **Deep Learning Toolbox** with the add-on **Deep Learning Toolbox Converter for ONNX Model Format**
+  (team CNN and YOLOP; Python onnxruntime is the CPU fallback)
+- **Parallel Computing Toolbox** (GPU, optional)
+- **RoadRunner** and **RoadRunner Scenario**: only for the competition co-simulation in `aBaja2026.slx`
 
-Only for the neural detectors (`cnn`, `yolop`): **Deep Learning Toolbox** and the **ONNX model
-converter** support package, plus `models/perception/team_cnn.onnx` from the team Drive.
-Only for the GPU paths: **Parallel Computing Toolbox**. `classic` and `laneassist` need neither.
-
-The vehicle plant is this repository's own `src/plant/lka_single_track_dynamics.m`; Vehicle
-Dynamics Blockset and Simscape are **not** used.
+The LKA's own vehicle model is a MATLAB function (`src/plant`), so Vehicle Dynamics Blockset and
+Simscape are not needed for it; the organisers' `aBaja2026.slx` may need further products.
 
 ---
 
@@ -134,4 +152,3 @@ Dynamics Blockset and Simscape are **not** used.
 4. **MathWorks Automotive Advisory Board (MAAB)**. *Control Algorithm Modeling Guidelines Using MATLAB, Simulink, and Stateflow*.
 
 For complete BibTeX citations, see [`docs/references/references.bib`](docs/references/references.bib).
-
