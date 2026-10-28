@@ -1,5 +1,5 @@
 function T = run_detector_benchmark(options)
-% RUN_DETECTOR_BENCHMARK YOLOP vs team CNN vs classic on the same frames.
+% RUN_DETECTOR_BENCHMARK YOLOP vs team CNN vs classic vs LaneAssist, same frames.
 %
 % Syntax:
 %   T = run_detector_benchmark()                                    % record + score + closed loop
@@ -7,7 +7,8 @@ function T = run_detector_benchmark(options)
 %
 % Name-value options:
 %   Dataset    - recorded dataset folder; empty = record one with run_lka_vision (S1, classic)
-%   Detectors  - default: classic, yolop (if the ONNX add-on exists), cnn (if team_cnn.onnx exists)
+%   Detectors  - default: classic, laneassist (ported, docs/laneassist_comparison.md),
+%                yolop (if the ONNX add-on exists), cnn (if team_cnn.onnx exists)
 %   ClosedLoop - also run run_lka_vision for each detector and append the lane KPIs (default true)
 %   OutDir     - default results/benchmark
 % Writes detector_benchmark.csv, detector_benchmark.md and detector_benchmark.png to OutDir.
@@ -26,7 +27,7 @@ function T = run_detector_benchmark(options)
     evalin('base', 'lkaProfile = ''baja''; lka_controller_params;');
     V = evalin('base', 'LKA.Vision');
     if isempty(options.Detectors)
-        options.Detectors = {'classic'};
+        options.Detectors = {'classic', 'laneassist'};
         if exist('importNetworkFromONNX', 'file') == 2
             options.Detectors{end + 1} = 'yolop';
             if isfile(fullfile(V.DetectorDir, 'team_cnn.onnx'))

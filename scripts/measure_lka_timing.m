@@ -6,8 +6,9 @@ function T = measure_lka_timing(options)
 %   T = measure_lka_timing(Repeats=30, Image='results/vision/calibration_raw.png')
 %
 % Times each stage of the camera chain on one real Unreal frame of the official LKA
-% track (1280x720): every available detector (classic, YOLOP, team UFLDv2), the
-% bird's-eye warp, the lane search + fit, and the annotation of the video frame. The
+% track (1280x720): every available detector (classic, the ported LaneAssist row
+% histograms, YOLOP, team UFLDv2), the bird's-eye warp, the lane search + fit, and the
+% annotation of the video frame. The
 % median over Repeats runs (after one warm-up) is reported with the frame rate that
 % stage alone would allow. Writes results/timing/lka_timing.csv.
 %
@@ -28,7 +29,7 @@ function T = measure_lka_timing(options)
     img = imread(options.Image);
     cam = lka_camera_model(V.Camera, V.Bev);
 
-    detectors = {'classic'};
+    detectors = {'classic', 'laneassist'};
     if lka_onnx_runtime_available()
         detectors{end + 1} = 'yolop';
         if isfile(fullfile(V.DetectorDir, 'team_cnn.onnx'))

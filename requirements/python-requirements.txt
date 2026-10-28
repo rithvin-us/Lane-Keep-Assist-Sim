@@ -1,0 +1,24 @@
+# Python packages for tools/ (MATLAB itself needs none of these).
+# Install into the interpreter MATLAB uses: check it with  pyenv  in MATLAB, then
+#   python3 -m pip install -r requirements/python-requirements.txt
+#
+# Nothing here is needed for the MIL bench, the classic detector or the laneassist
+# detector. These are only for the ONNX back end, the reference implementations used by
+# the parity tests, and the live dashboard.
+
+# tools/lka_ort.py              in-process ONNX back end called from MATLAB through pyenv
+# tools/onnx_reference.py       raw float32 .bin/.json fixtures for the parity tests
+# tools/ufld_reference.py       Colab-exact UFLDv2 reference (test_ufld_reference_parity)
+numpy>=1.24
+onnxruntime>=1.17          # CPU execution provider; the GPU path goes through MATLAB instead
+
+# tools/ufld_reference.py, tools/export_ufld_onnx.py   checkpoint -> ONNX opset 17
+torch>=2.0
+torchvision>=0.15
+pillow>=10.0               # imported as PIL by tools/ufld_reference.py
+
+# tools/lka_dashboard.py uses only the standard library (http.server, csv, json,
+# subprocess for nvidia-smi), so it needs nothing from this file.
+#
+# tools/adas2026/verify_signs.py imports perception.* from the separate, git-ignored
+# ADAS_2026/ checkout (RatheeswarS/ADAS_2026), not from PyPI.
