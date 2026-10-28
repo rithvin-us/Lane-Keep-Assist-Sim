@@ -144,12 +144,16 @@ function V = lka_vision_params(profile)
                                               % follows the line (tight tracks, lka_fit_boundary)
     V.Fit.MaxResidual      = 0.04;            % 90th percentile line-centre distance allowed then [m]
     V.Fit.MinRange         = 5;               % shortest fitted span then [m]
-    V.Fit.ConsistencyWeight = 0.3;            % mixes the change since the previous frame
-                                              % into Strength (lka_fit_boundary): both
-                                              % lines in 96.5 % instead of 95.7 % of clip
-                                              % 12.23.27 (1), unchanged on 12.23.28 and on
-                                              % the synthetic set, no time cost. 0 = the
-                                              % geometric Strength only
+    V.Fit.ConsistencyWeight = 0;              % > 0 mixes the change since the previous
+                                              % frame into Strength (lka_fit_boundary).
+                                              % 0.3 was briefly the default on the strength
+                                              % of +0.9 points of both-lines on clip
+                                              % 12.23.27 (1); re-measured after the prior
+                                              % staleness fix it costs 19.2 points on clip
+                                              % 12.23.28 (86.8 -> 67.6 %), because a
+                                              % re-acquired side now scores against no
+                                              % history and drops under StrengthMin.
+                                              % Off until that interaction is retuned
     V.Fit.ConsistencyScale = 0.30;            % change that takes that term to 0 [m rms]
 
     % ---------------------------------------------------------- frame-to-frame logic
