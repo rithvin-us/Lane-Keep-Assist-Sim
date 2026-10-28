@@ -85,8 +85,8 @@ not fire reliably on a synthetic scene. The clip table below is the realistic on
 | `laneassist` re-tuned | 52.3 % | 44.6 % | 6.4 % | 7.1–9.5 ms | 106–140 Hz |
 | `yolop` | 86.7 % | 88.6 % | 50.1 % | 94–96 ms | 10.5–10.6 Hz |
 
-Column is both-lines ratio, all measured at the shipped defaults (`RoiFromBev` on,
-`ConsistencyWeight` 0). `yolop` is ~20x slower than `classic` against a 20 Hz loop budget and
+Column is both-lines ratio at the shipped defaults (`RoiFromBev` on, `ConsistencyWeight` 0,
+official track profile). §4a has the numbers for the other two configurations. `yolop` is ~20x slower than `classic` against a 20 Hz loop budget and
 behind it on every clip, but ahead of the re-tuned `laneassist` everywhere.
 
 Why both-lines and not lateral offset: the camera is unmeasured. Pitch auto-calibration returned
@@ -108,6 +108,7 @@ MPC passes everywhere except S4, which Pure Pursuit also fails.
 | Change | State | Evidence |
 |---|---|---|
 | `V.Classic.RoiFromBev` — compute the paint map only on rows below the horizon | **default on** | −9.3 % detector time on the Unreal frame (interleaved A/B), −20 to −38 % on the clips, detection identical everywhere measured |
+| `V.Fit.AdaptiveRange` (PR #1) — shorten the fitted span until the polynomial follows the line | **stays off by default**, see §4a | the single best cure for jitter on the recorded clips, but the defaults are pinned to the official track by `testDefaultsKeepOfficialBehaviour` |
 | `lka_bev_odometry` no longer calls `hann` | **fixed** | Signal Processing Toolbox dependency killed the odometry and video path; 4 tests went from erroring to passing |
 | `V.Fit.ConsistencyWeight` — temporal term in `Strength` | implemented, **default 0** | +0.9 points on clip 1, **−19.2 on clip 3** once the prior-staleness fix landed |
 | `V.Classic.Adaptive` — per-frame paint offset | implemented, default off | no detection change on any clip, +1.8 ms/frame |
@@ -124,6 +125,51 @@ The detector plugs into the existing contract (`det.Detect(rgb) → prob`), so
 `LKA.Vision.Detector = 'laneassist'` works everywhere `classic` does. Parameters live in
 `V.LaneAssist`, rescaled from their 848×480 config to our 1280×720 (columns ×1.51, rows ×1.5,
 second-degree limit ×0.671) — **an assumption, not a measurement**.
+
+---
+
+## 4a. Which settings to use on the recorded college-track clips
+
+The clips are not the official track: 1.8-2.2 m lanes, road radii 18-56 m, a phone on an
+unmeasured mount. Three configurations were measured on all three clips, `classic` detector,
+same auto-calibration per clip. "jumps" is frame-to-frame offset steps over 0.3 m, "swaps" over
+1 m (a fit that moved to a different line), CV is pair-width std / median.
+
+| Clip | config | both-lines | jumps | swaps | CV | flips |
+|---|---|---|---|---|---|---|
+| 12.23.27 (1) | official (shipped) | 95.7 % | 52 | 14 | 0.161 | 5 |
+| | official + `AdaptiveRange` | 96.7 % | 90 | 29 | 0.149 | 7 |
+| | `tight` R3 | 96.2 % | 190 | 49 | 0.404 | 3 |
+| 12.23.27 | official (shipped) | 95.5 % | 212 | 38 | 0.242 | 18 |
+| | official + `AdaptiveRange` | 99.0 % | **19** | **3** | **0.119** | 4 |
+| | `tight` R3 | **99.5 %** | 180 | 24 | 0.309 | **2** |
+| 12.23.28 | official (shipped) | **86.8 %** | 381 | 147 | 0.492 | 36 |
+| | official + `AdaptiveRange` | 67.1 % | 114 | 20 | 0.275 | 8 |
+| | `tight` R3 | 80.5 % | 263 | 82 | 0.459 | 18 |
+
+Read it like this:
+
+- **Visible flicker in a rendered video is the jump/swap/CV columns, not coverage.** On
+  12.23.27 the shipped defaults find both lines in 95.5 % of frames yet swap line 38 times;
+  that is what looks wrong on screen.
+- **`AdaptiveRange` alone is the best cure for jitter** (12.23.27: 212 → 19 jumps, 38 → 3 swaps,
+  CV halved) because it *rejects* fits that do not follow the line. It costs coverage where the
+  lines are faint (12.23.28: 86.8 → 67.1 %), and most of what it drops there were wrong-line
+  fits (147 → 20 swaps).
+- **The full `tight` profile is the best cure for dropouts** (12.23.27: 99.5 %, flips 18 → 2)
+  because it *accepts* more fits — so its jitter stays high. `MinRadius` is not a tuning knob
+  for this: raising it to 8 or 15 only rejects more (12.23.27 falls to 55.9 % at R15).
+- On the labelled synthetic set `AdaptiveRange` is a **no-op** (identical F1, IoU, MaeY): those
+  rendered lines never exceed `MaxResidual`, so nothing is cut.
+
+So: render or replay these clips with `LKA.Vision.Fit.AdaptiveRange = true` on the official
+profile for the steadiest geometry, or `lkaTrackProfile = 'tight'` before `config/startup.m`
+when continuity of detection matters more. The defaults are **not** changed, because
+`tests/unit_tests/test_vision_tight_track.m` pins them to the official track on purpose
+(`testDefaultsKeepOfficialBehaviour`).
+
+The annotated videos in `test_res/<clip>/lka_annotated_classic.mp4` were rendered with
+`AdaptiveRange = true`.
 
 ---
 
