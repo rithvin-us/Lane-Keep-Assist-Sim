@@ -66,6 +66,9 @@ The repository follows **MathWorks Automotive Advisory Board (MAAB)** guidelines
    run('config/shutdown.m')
    ```
 
+Handing this repository to another person or agent: **[`CONTEXT.md`](CONTEXT.md)** — current
+state, what was measured and decided, the environment traps, and the open work.
+
 How the LKA works (lane perception, supervisor, pure pursuit / Stanley 2025 / MPC,
 limits, turning radius): **[`docs/lka_controller.md`](docs/lka_controller.md)**.
 New to MATLAB or to the project: open **`docs/LKA_Learning_Lab.html`** in a browser (interactive

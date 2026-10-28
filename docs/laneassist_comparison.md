@@ -142,11 +142,15 @@ were produced the same way (`requirements/system.md`).
 
 | Variant | P | R | F1 | IoU | DetRate L/R | MaeY5 | MaeY10 | MaeY20 | Heading | ms |
 |---|---|---|---|---|---|---|---|---|---|---|
-| `classic` | 1.000 | 0.991 | **0.996** | **0.983** | 0.917 / 1.000 | 0.0044 m | **0.00062 m** | **0.00091 m** | **0.16°** | 18.59 |
-| `classic` + BEV row ROI | 1.000 | 0.991 | 0.996 | 0.983 | 0.917 / 1.000 | 0.0044 m | 0.00062 m | 0.00091 m | 0.16° | **12.34** |
-| `laneassist` (their config, rescaled) | 0.917 | 0.424 | 0.578 | 0.249 | 0.633 / 0.667 | 0.0244 m | 0.0204 m | 0.704 m | 4.10° | 9.45 |
-| `laneassist` re-tuned to our mount | 0.993 | 0.610 | 0.751 | 0.377 | 0.667 / 0.750 | 0.0333 m | 0.0214 m | 0.267 m | 2.82° | 10.54 |
-| `laneassist` re-tuned + lower thresholds | 0.993 | 0.610 | 0.751 | 0.377 | 0.667 / 0.750 | 0.0333 m | 0.0214 m | 0.267 m | 2.82° | 10.38 |
+| `classic` (ROI on, the default) | 1.000 | 0.991 | **0.996** | **0.983** | 0.917 / 1.000 | 0.0044 m | **0.00062 m** | **0.00091 m** | **0.16°** | **16.84** |
+| `laneassist` (their config, rescaled) | 0.917 | 0.424 | 0.578 | 0.249 | 0.633 / 0.667 | 0.0244 m | 0.0204 m | 0.704 m | 4.10° | 10.45 |
+| `laneassist` re-tuned to our mount | 0.993 | 0.610 | 0.751 | 0.377 | 0.667 / 0.750 | 0.0333 m | 0.0214 m | 0.267 m | 2.82° | 11.97 |
+| `yolop` (ONNX, CPU) | 0.954 | 0.295 | 0.427 | 0.190 | 0.283 / 0.183 | 0.0590 m | 0.0127 m | 0.357 m | 3.42° | 117.90 |
+
+`yolop` scores badly **here for a reason that is not about YOLOP**: it is a network trained on
+real road photographs, and this dataset is a synthetic renderer. Its clip numbers below are the
+ones to judge it by. `cnn` is still absent because `models/perception/team_cnn.onnx` is not in
+git.
 
 Two caveats that keep this honest:
 
@@ -211,6 +215,21 @@ geometry is identical and only the detector changes
 | pitch 0.5°, 1.76 m | `classic` + ROI | 621 | **86.8 %** | 99.8 % | **3.18 ms** | 4.54 ms | **129.8 Hz** | 1.98 m |
 | | `laneassist` | 621 | 2.4 % | 17.1 % | 4.02 ms | 3.76 ms | 132.2 Hz | 1.34 m |
 | | `laneassist` re-tuned | 621 | 6.4 % | 43.2 % | 5.88 ms | 3.88 ms | 102.8 Hz | −0.17 m |
+
+`yolop` was added once the Deep Learning Toolbox and the ONNX converter were installed, on the
+same frames and the same calibration (`results/benchmark/laneassist_video_comparison.csv`):
+
+| Clip | `classic` | `laneassist` | `laneassist` re-tuned | `yolop` |
+|---|---|---|---|---|
+| 12.23.27 (1) | **95.7 %** @ 3.9 ms | 13.6 % @ 6.1 ms | 52.3 % @ 9.5 ms | 86.7 % @ 95.6 ms |
+| 12.23.27 | **95.5 %** @ 4.8 ms | 3.7 % @ 6.3 ms | 44.6 % @ 9.4 ms | 88.6 % @ 95.4 ms |
+| 12.23.28 | **86.8 %** @ 3.6 ms | 2.4 % @ 4.9 ms | 6.4 % @ 7.1 ms | 50.1 % @ 94.0 ms |
+
+Both-lines ratio @ median detector time, CPU, measured at the shipped defaults
+(`RoiFromBev` on, `ConsistencyWeight` 0). `yolop` is about 20x slower than `classic`
+(10.5-10.6 Hz against 208-275 Hz, against a 20 Hz loop budget) and behind it on every clip. It
+does beat the re-tuned `laneassist` everywhere, which is the fair reading of a CNN against a
+hand-tuned classical detector.
 
 Read-outs:
 
@@ -296,7 +315,7 @@ the pixels they need.
 | # | Parameter | Default now | Measured outcome |
 |---|---|---|---|
 | **ROI** | `V.Classic.RoiFromBev` | **true** | −9.3 % detector time on the Unreal frame, −20 to −38 % on the clips, detection identical (4.3, 4.4) |
-| **B1** | `V.Fit.ConsistencyWeight` | **0.3** | both lines 95.68 → 96.55 % on clip 12.23.27 (1), unchanged elsewhere, no time cost |
+| **B1** | `V.Fit.ConsistencyWeight` | **0** (was briefly 0.3) | +0.87 points on clip 12.23.27 (1), but **−19.2 on clip 12.23.28** (86.8 → 67.6 %) once the prior-staleness fix landed: a re-acquired side scores 0 on the term and drops under `StrengthMin`. Reverted in `8ede4fa` |
 | **C** | `lka_dashed_detect`, `lka_horizontal_detect` | new, nothing calls them | 6 unit tests pass; dash 3.0 m / gap 6.0 m recovered within 0.3 m, stop line at 12 m located within 0.2 m |
 | L10 | `hannWindow` in `lka_bev_odometry` | replaces `hann` | 4 odometry tests went from erroring to passing |
 | A | `V.Classic.Adaptive` | false | no detection change, +1.8 ms/frame — rejected |
