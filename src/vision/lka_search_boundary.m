@@ -12,7 +12,6 @@ function [pts, nHit] = lka_search_boundary(bevProb, cam, prior, S)
 % line through the last (up to 6) slice peaks. A cold prior (no previous fit) keeps the
 % window on its own side of the vehicle (|y| > MinCenterDist) until the first hit.
 %
-<<<<<<< HEAD
 % Tight tracks (lka_set_track_profile 'tight'; the defaults keep the behaviour above):
 %   S.PredictQuadratic = true the next window follows a parabola through the last (up to 5)
 %                             peaks, its bend limited to S.PredictCurvatureMax [1/m]. A
@@ -21,7 +20,6 @@ function [pts, nHit] = lka_search_boundary(bevProb, cam, prior, S)
 %                             straight start of the bend.
 %   S.ReacquireGrow [m]       the window widens by this much per missed slice, so the
 %                             line is found again after a gap in a bend.
-=======
 % With S.TaperExp > 0 the two pixel-count thresholds follow the range: the same painted
 % ground area maps from fewer camera pixels the further away it is, so beyond S.TaperRef
 % the required slice mass is divided by (x/TaperRef)^TaperExp and the half-width that
@@ -29,7 +27,6 @@ function [pts, nHit] = lka_search_boundary(bevProb, cam, prior, S)
 % keeps both constant over range, which tightens the effective threshold with distance
 % (finding L3 of docs/laneassist_comparison.md; their image-plane equivalent is a pulse
 % width limit that narrows with image height).
->>>>>>> origin/main
 %
 % Inputs:
 %   bevProb - BEV probability image (double, rows = cam.RowX, columns = cam.ColY)

@@ -64,10 +64,8 @@ results/monitor/
 __pycache__/
 *.pyc
 
-<<<<<<< HEAD
 # Local check reports and their video results (run_lka_checks)
 results/checks/
-=======
 # LaneAssist (tsiggi, MIT): read-only reference for the detector comparison, see
 # docs/laneassist_comparison.md
 LaneAssist/
@@ -75,4 +73,3 @@ LaneAssist/
 # Annotated clips rendered by the ffmpeg path (51 MB); the frames are reproducible,
 # see requirements/system.md. The older lka_video_annotated.mp4 files stay tracked.
 test_res/**/lka_annotated_*.mp4
->>>>>>> origin/main
