@@ -38,11 +38,16 @@ The repository follows **MathWorks Automotive Advisory Board (MAAB)** guidelines
    Detector selection: `LKA.Vision.Detector`; model contract: `models/perception/README.md`.
    The networks run on the GPU through the ONNX importer add-on (onnxruntime CPU fallback).
    Audit of the 2025 Python stack: `docs/adas2026_audit.md`.
+   Comparison against the `tsiggi/LaneAssist` reference detector (ported as
+   `LKA.Vision.Detector = 'laneassist'`): `docs/laneassist_comparison.md`.
 8. Recorded track videos (lane, LKA steering, turning radius, speed, yaw) and the live dashboard:
    ```matlab
    start_lka_dashboard();        % http://127.0.0.1:8050 (live run, GPU, results)
    run_lka_on_test_videos();     % every vids/*.mp4 -> test_res/<name>/ (MP4, PNG, CSV) + summary.csv
    ```
+   Annotated video without MATLAB's VideoWriter (needed on a headless machine, see
+   `requirements/system.md`): render the frames, then mux with ffmpeg. Examples from the
+   college-track clips are in `test_res/<clip>/lka_annotated_<detector>.mp4`.
    See `docs/lka_controller.md` §9-10.
 9. When finished:
    ```matlab
@@ -83,19 +88,41 @@ LKA - Matlab/
 │                        integrate_lka_into_skeleton, run_baseline_simulation (legacy), evaluate_kpis (legacy)
 ├── tests/               unit_tests/test_lka_core.m, scenario_tests/test_lka_mil_scenarios.m (+ legacy tests)
 ├── docs/                lka_controller.md (design), mathematical_models.md, references/
+├── requirements/        MathWorks products, Python packages, system software (+ lka_check_requirements)
 ├── results/mil/         figures and lka_mil_kpis.csv from run_lka_mil
+├── results/benchmark/   detector comparison: classic vs laneassist vs cnn vs yolop
+├── third_party/         licences of the read-only reference checkouts
 └── SoftwareVirtualWorldSimulation-master/   aBaja 2026 competition skeleton (aBaja2026.slx + RoadRunner co-sim)
 ```
 
 ---
 
-## 3. Required Toolboxes
+## 3. Requirements
 
-The models and scripts in this repository use:
+Full list, with the exact error each missing piece produces: **[`requirements/`](requirements/)**
+(`matlab_toolboxes.md`, `python-requirements.txt`, `system.md`). From MATLAB:
+
+```matlab
+run('config/startup.m')
+lka_check_requirements        % every product, package and file, and what is missing here
+```
+
+MATLAB **R2026a or newer**. Required for the MIL bench and the camera chain:
+
 - **MATLAB & Simulink**
-- **Automated Driving Toolbox** (Scenario generation, coordinate transforms, lane detection)
-- **Vehicle Dynamics Blockset** / **Simscape Driveline** (Vehicle plant representation)
-- **Control System Toolbox** / **Model Predictive Control Toolbox** (Controller synthesis)
+- **Automated Driving Toolbox** - `monoCamera` / `birdsEyeView`, Unreal co-simulation blocks
+- **Computer Vision Toolbox** - lane rasterisation and video annotation
+- **Image Processing Toolbox** - `imboxfilt`, `strel`, `bwlabel`
+- **Model Predictive Control Toolbox** + **Control System Toolbox** - the MPC controller.
+  Without it *no* Simulink model in this repository compiles, not even the pure-pursuit runs,
+  because the whole controller has to compile.
+
+Only for the neural detectors (`cnn`, `yolop`): **Deep Learning Toolbox** and the **ONNX model
+converter** support package, plus `models/perception/team_cnn.onnx` from the team Drive.
+Only for the GPU paths: **Parallel Computing Toolbox**. `classic` and `laneassist` need neither.
+
+The vehicle plant is this repository's own `src/plant/lka_single_track_dynamics.m`; Vehicle
+Dynamics Blockset and Simscape are **not** used.
 
 ---
 
@@ -106,6 +133,5 @@ The models and scripts in this repository use:
 3. **ISO 11270:2014**. *Intelligent transport systems — Lane keeping assistance systems (LKAS) — Performance requirements and test procedures*. *(Used for pass/fail KPI validation).*
 4. **MathWorks Automotive Advisory Board (MAAB)**. *Control Algorithm Modeling Guidelines Using MATLAB, Simulink, and Stateflow*.
 
-For complete BibTeX citations, see [`docs/references/references.bib`](file:///e:/Abaja%20Labs/2026/LKA%20-%20Matlab/docs/references/references.bib).
+For complete BibTeX citations, see [`docs/references/references.bib`](docs/references/references.bib).
 
-# LKA---Simulink-
