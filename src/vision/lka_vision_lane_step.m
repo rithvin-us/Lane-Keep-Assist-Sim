@@ -18,6 +18,12 @@ function [sensor, state, info] = lka_vision_lane_step(bevProb, cam, V, state, dt
 % One-line operation, coasting and take-over stay in LKA_Controller (lane tracker,
 % supervisor), so a missing side is reported with Strength 0.
 %
+% V.Track.TrustFrames > 1 reports a side only after that many consecutive plausible fits,
+% and one miss resets the count (finding L1 of docs/laneassist_comparison.md: a wrong line
+% that the geometric Strength cannot tell from a right one reached the controller
+% unchallenged). The prior and the width estimate still use every direct fit. 1 is the
+% default and reports every plausible fit, as before.
+%
 % Inputs:
 %   bevProb - lka_bev_warp(cam, probabilityMap): H x W (one map for both sides) or
 %             H x W x 2 (page 1 searched for the left line, page 2 for the right one,
@@ -47,12 +53,17 @@ function [sensor, state, info] = lka_vision_lane_step(bevProb, cam, V, state, dt
         else
             % cold: nominal lane position and the nearest line on this side, one as the
             % fallback of the other (Search.SeedFirst)
+            coldHalf = V.Search.ColdHalfWidth;
+            if V.Search.ColdHalfWidthFromWidth
+                % a 3.5 m window around a 2 m lane reaches past the far line
+                coldHalf = max(0.35, min(coldHalf, 0.4 * W));
+            end
             priors = struct('Fun', @(x) sides(k) * W / 2 + 0 * x, ...
-                'HalfWidth', V.Search.ColdHalfWidth, 'Cold', true);
+                'HalfWidth', coldHalf, 'Cold', true);
             ySeed = nearestPeak(map, cam, sides(k), V.Search);
             if isfinite(ySeed)
                 seed = struct('Fun', @(x) ySeed + 0 * x, 'HalfWidth', V.Search.SeedHalfWidth, 'Cold', true);
-                if V.Search.SeedFirst
+                if V.Search.SeedFirst || (V.Search.SeedFirstWhenUnseeded && ~state.WidthSeeded)
                     priors = [seed, priors]; %#ok<AGROW>
                 else
                     priors = [priors, seed]; %#ok<AGROW>
@@ -64,7 +75,13 @@ function [sensor, state, info] = lka_vision_lane_step(bevProb, cam, V, state, dt
             prior.Side = sides(k);
             pts = lka_search_boundary(map, cam, prior, V.Search);
             nPts(k) = size(pts, 1);
-            [b, ok] = lka_fit_boundary(pts, V.Fit);
+            % only a prior still inside HoldTime is a "previous frame" for the
+            % consistency term; after a longer coast it would score against a stale fit
+            if prev.Valid && prev.Age <= V.Track.HoldTime
+                [b, ok] = lka_fit_boundary(pts, V.Fit, prev.Coeffs);
+            else
+                [b, ok] = lka_fit_boundary(pts, V.Fit, zeros(1, 4));
+            end
             % side check at the first visible row: on tight bends the boundary extrapolated
             % back to the rear axle can end up on the other side of the vehicle axis
             found(k) = ok && abs(b.HeadingAngle) <= V.Track.HeadingMax ...
@@ -93,13 +110,27 @@ function [sensor, state, info] = lka_vision_lane_step(bevProb, cam, V, state, dt
         end
     end
 
+    % a side is reported once TrustFrames consecutive plausible fits agree; one miss
+    % resets the count, so a side that flickers never reaches the controller
+    report = found;
+    for k = 1:2
+        if found(k)
+            state.(names{k}).Hits = state.(names{k}).Hits + 1;
+        else
+            state.(names{k}).Hits = 0;
+        end
+        report(k) = found(k) && state.(names{k}).Hits >= V.Track.TrustFrames;
+    end
+
     empty = struct('LateralOffset', 0, 'HeadingAngle', 0, 'Curvature', 0, ...
         'CurvatureDerivative', 0, 'Strength', 0, 'ViewRange', 0);
-    sensor = struct('Left', empty, 'Right', empty, 'FrameValid', any(found));
+    sensor = struct('Left', empty, 'Right', empty, 'FrameValid', any(report));
     for k = 1:2
         if found(k)
             b = bnd{k};
-            sensor.(names{k}) = b;
+            if report(k)
+                sensor.(names{k}) = b;
+            end
             state.(names{k}).Valid = true;
             state.(names{k}).Age = 0;
             state.(names{k}).Coeffs = [b.LateralOffset, tan(b.HeadingAngle), b.Curvature / 2, b.CurvatureDerivative / 6];
@@ -110,7 +141,7 @@ function [sensor, state, info] = lka_vision_lane_step(bevProb, cam, V, state, dt
             end
         end
     end
-    info = [nPts, double(found), state.Width];
+    info = [nPts, double(report), state.Width];
 end
 
 function y = yAt(b, x)

@@ -85,7 +85,7 @@ function m = lka_bev_odometry(bevPrev, bevCur, cam, options)
         A(:, :, k, :) = reshape(ta(r, cc, :), nr, nc, 1, nPairs);
         B(:, :, k, :) = reshape(tb(r, cc, :), nr, nc, 1, nPairs);
     end
-    win = cast(hann(nr) * hann(nc)', 'like', real(ta));
+    win = cast(hannWindow(nr) * hannWindow(nc)', 'like', real(ta));
     R = fft2(A .* win) .* conj(fft2(B .* win));
     R = R ./ max(abs(R), 1e-12) .^ options.Whitening;
     c = real(ifft2(R));                       % peak at the shift that maps current onto previous
@@ -122,6 +122,17 @@ end
 
 function t = texture(g)
     t = min(max(g - imgaussfilt(g, 4), -0.08), 0.08);
+end
+
+function w = hannWindow(n)
+% Symmetric Hann window, the values of hann(n) of the Signal Processing Toolbox, which
+% this was the only call to: the toolbox is not part of the install the camera path has
+% to run on.
+    if n == 1
+        w = 1;
+        return
+    end
+    w = 0.5 * (1 - cos(2 * pi * (0:n - 1)' / (n - 1)));
 end
 
 function d = subPixel(c, iy, ix, nr, nc, dim)

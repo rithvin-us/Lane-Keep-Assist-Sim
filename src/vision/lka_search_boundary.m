@@ -12,6 +12,14 @@ function [pts, nHit] = lka_search_boundary(bevProb, cam, prior, S)
 % line through the last (up to 6) slice peaks. A cold prior (no previous fit) keeps the
 % window on its own side of the vehicle (|y| > MinCenterDist) until the first hit.
 %
+% With S.TaperExp > 0 the two pixel-count thresholds follow the range: the same painted
+% ground area maps from fewer camera pixels the further away it is, so beyond S.TaperRef
+% the required slice mass is divided by (x/TaperRef)^TaperExp and the half-width that
+% feeds the fit is multiplied by it, up to S.LineHalfWidthMax. TaperExp = 0 (the default)
+% keeps both constant over range, which tightens the effective threshold with distance
+% (finding L3 of docs/laneassist_comparison.md; their image-plane equivalent is a pulse
+% width limit that narrows with image height).
+%
 % Inputs:
 %   bevProb - BEV probability image (double, rows = cam.RowX, columns = cam.ColY)
 %   prior   - .Fun @(x) expected y [m], .HalfWidth [m], .Side +1/-1, .Cold logical
@@ -32,6 +40,13 @@ function [pts, nHit] = lka_search_boundary(bevProb, cam, prior, S)
             continue
         end
         xMid = 0.5 * (edges(k) + edges(k + 1));
+        minMass = S.MinSliceMass;
+        halfLine = S.LineHalfWidth;
+        if S.TaperExp > 0
+            f = max(1, (xMid / S.TaperRef) ^ S.TaperExp);
+            minMass = max(1, minMass / f);
+            halfLine = min(S.LineHalfWidthMax, halfLine * f);
+        end
         yc = expected(xMid);
         cols = colY >= yc - prior.HalfWidth & colY <= yc + prior.HalfWidth;
         if prior.Cold && isempty(px)
@@ -47,7 +62,7 @@ function [pts, nHit] = lka_search_boundary(bevProb, cam, prior, S)
         for j = 1:max(runs)
             m = runs == j;
             mass = sum(prof(m));
-            if mass < S.MinSliceMass
+            if mass < minMass
                 continue
             end
             yRun = sum(prof(m) .* colY(cIdx(m))) / mass;
@@ -70,7 +85,7 @@ function [pts, nHit] = lka_search_boundary(bevProb, cam, prior, S)
         rIdx = find(rows);
         xs = reshape(rowX(rIdx(r)), [], 1);
         ys = reshape(colY(cIdx(cc)), [], 1);
-        near = abs(ys - yPeak) <= S.LineHalfWidth;
+        near = abs(ys - yPeak) <= halfLine;
         pts = [pts; xs(near), ys(near), wv(near)]; %#ok<AGROW>
     end
 

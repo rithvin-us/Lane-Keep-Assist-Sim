@@ -10,6 +10,7 @@ sidecar `type` selects the adapter. Select the detector with `LKA.Vision.Detecto
 | `yolop` | `yolop.json` (`seg`) | `lka_detector_onnx_seg.m` | `yolop_ll_384x640.onnx`: YOLOP lane-line head, exported from ADAS_2026 (`export_yolop_onnx.py`) |
 | `cnn` | `cnn.json` (`ufld_v2`) | `lka_detector_ufld.m` | `team_cnn.onnx`: team UFLDv2 ResNet-18 (TuSimple), **not in git** (> 100 MB), copy from the team Drive |
 | `classic` | none | `lka_detector_classic.m` | white/yellow local-contrast reference detector |
+| `laneassist` | none | `lka_detector_laneassist.m` | ported tsiggi/LaneAssist square-pulse row histograms, two pages (left / right); parameters in `LKA.Vision.LaneAssist`, comparison in `docs/laneassist_comparison.md` |
 
 ## Exporting the team UFLDv2 model (Colab, `UFLDv2_Lane_Detection_Colab.ipynb`)
 
