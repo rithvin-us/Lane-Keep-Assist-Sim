@@ -131,6 +131,8 @@
     <div class="card span-6"><h2>Lane lines and lane centre <span class="sub">lateral position at the rear axle, + left</span></h2><div class="chartbox"><canvas class="chart" id="c-lane"></canvas></div></div>
     <div class="card span-6"><h2>Latency <span class="sub">per frame; red line = 50 ms budget of the 20 Hz loop</span></h2><div class="chartbox"><canvas class="chart" id="c-ms"></canvas></div></div>
     <div class="card span-6"><h2>Speed</h2><div class="chartbox"><canvas class="chart" id="c-speed"></canvas></div></div>
+    <div class="card span-12 hidden" id="card-path"><h2>Path on the track <span class="sub">closed-loop runs: lane lines grey, vehicle trace coloured by time, dot = now</span></h2>
+      <canvas id="c-path" style="width:100%;height:360px;display:block"></canvas></div>
 
     <div class="card span-12">
       <h2>Computer <span class="sub" id="gpuname"></span></h2>
@@ -173,7 +175,7 @@
 const $ = (id) => document.getElementById(id);
 const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 const STATES = ['OFF', 'STANDBY', 'ACTIVE', 'DEGRADED', 'TAKEOVER'];
-const KIND = { live: 'Live camera', video: 'Recorded video', sim: 'Unreal closed loop' };
+const KIND = { live: 'Live camera', video: 'Recorded video', sim: 'Closed-loop simulation' };
 const BUDGET_MS = 50;
 const fmt = (v, d = 1) => (v === null || v === undefined || Number.isNaN(v)) ? '–' : Number(v).toFixed(d);
 const arr = (v) => v === undefined || v === null ? [] : (Array.isArray(v) ? v : [v]);
@@ -358,7 +360,32 @@ function renderLive() {
   $('mstotal').textContent = tot ? `total ${fmt(tot, 0)} ms → up to ${fmt(1000 / tot, 0)} frames/s` : '';
   redrawLive(S);
 }
+function drawPath() {
+  const R = live && live.Road, P = live && live.Path, card = $('card-path');
+  card.classList.toggle('hidden', !R && !P);
+  if (!R && !P) return;
+  const c = $('c-path'), dpr = window.devicePixelRatio || 1, w = c.clientWidth, h = c.clientHeight;
+  if (!w || !h) return;
+  c.width = w * dpr; c.height = h * dpr;
+  const g = c.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, h);
+  const xs = [...arr(R && R.xL), ...arr(R && R.xR), ...arr(P && P.x)], ys = [...arr(R && R.yL), ...arr(R && R.yR), ...arr(P && P.y)];
+  if (!xs.length) return;
+  const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys), pad = 14;
+  const k = Math.min((w - 2 * pad) / Math.max(x1 - x0, 1), (h - 2 * pad) / Math.max(y1 - y0, 1));   // equal aspect
+  const X = (x) => pad + (x - x0) * k + (w - 2 * pad - (x1 - x0) * k) / 2, Y = (y) => h - pad - (y - y0) * k - (h - 2 * pad - (y1 - y0) * k) / 2;
+  const line = (xa, ya, col, lw) => { g.strokeStyle = col; g.lineWidth = lw; g.beginPath(); xa.forEach((x, i) => i ? g.lineTo(X(x), Y(ya[i])) : g.moveTo(X(x), Y(ya[i]))); g.stroke(); };
+  if (R) { line(arr(R.xL), arr(R.yL), css('--muted'), 1.5); line(arr(R.xR), arr(R.yR), css('--muted'), 1.5); }
+  if (P) {
+    const px = arr(P.x), py = arr(P.y), n = px.length;
+    for (let i = 1; i < n; i++) { g.strokeStyle = `hsl(${210 - 190 * i / n} 80% 50%)`; g.lineWidth = 2.5; g.beginPath(); g.moveTo(X(px[i - 1]), Y(py[i - 1])); g.lineTo(X(px[i]), Y(py[i])); g.stroke(); }
+    if (n) { g.fillStyle = css('--bad'); g.beginPath(); g.arc(X(px[n - 1]), Y(py[n - 1]), 5, 0, 7); g.fill(); }
+  }
+  g.fillStyle = css('--muted'); g.font = '12px system-ui, sans-serif';
+  const sb = Math.pow(10, Math.floor(Math.log10((x1 - x0) / 4)));   // scale bar
+  g.fillRect(pad, h - 8, sb * k, 2); g.fillText(`${sb} m`, pad + sb * k + 6, h - 4);
+}
 function redrawLive(S) {
+  drawPath();
   S = S || (live && live.Series) || {};
   const t = arr(S.Time), W = { window: windowS };
   chart($('c-steer'), [{ x: t, y: arr(S.Steer), color: '--c2', label: 'steer command' }], { ...W, unit: 'deg', sym: true, minSpan: 2, digits: 1 });

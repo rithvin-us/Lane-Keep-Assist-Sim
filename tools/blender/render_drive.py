@@ -59,12 +59,12 @@ def pose(t, s0):
                 left=(w - e) * math.cos(dpsi), right=(-w - e) * math.cos(dpsi))
 
 
-def setup_render(samples):
+def setup_render(samples, width=W, height=H):
     sc = bpy.context.scene
     sc.render.engine = "CYCLES"
     sc.cycles.samples = samples
     sc.cycles.use_denoising = True
-    sc.render.resolution_x, sc.render.resolution_y = W, H
+    sc.render.resolution_x, sc.render.resolution_y = width, height
     sc.render.image_settings.file_format = "JPEG"
     sc.render.image_settings.quality = 92
     sc.view_settings.view_transform = "Standard"         # camera-like tone, no filmic wash-out
@@ -132,17 +132,40 @@ def shadow_casters(height=4.0):
     bpy.context.scene.collection.objects.link(ob)
 
 
-def camera():
+def camera(f_px=F_PX, width=W, cx=None, cy=None, height=H):
+    """Pinhole camera matching LKA.Vision.Camera (focal length and principal point in px)."""
     sc = bpy.context.scene
     cd = bpy.data.cameras.new("LkaCamera")
     cd.sensor_fit = "HORIZONTAL"
     cd.sensor_width = 36.0
-    cd.lens = 36.0 * F_PX / W                                       # 1109 px focal length at 1280 px
+    cd.lens = 36.0 * f_px / width                                   # e.g. 1109 px at 1280 px
+    if cx is not None:                                              # principal point off-centre
+        cd.shift_x = (width / 2 - cx) / width
+        cd.shift_y = (cy - height / 2) / width
     cd.clip_start, cd.clip_end = 0.1, 500
     cam = bpy.data.objects.new("LkaCamera", cd)
     sc.collection.objects.link(cam)
     sc.camera = cam
     return cam
+
+
+def build_scene(json_file, samples, width=W, height=H):
+    """Track + real shadows + sky/sun + render settings; returns the Cycles device used."""
+    track.load(json_file)
+    # dark patches get their darkness from real shadows here, not from dark paint
+    every = track.T["patches"]
+    track.T["patches"] = [p for p in every if p["Type"] != "dark"]
+    track.build()
+    track.T["patches"] = every
+    shadow_casters()
+    return setup_render(samples, width, height)
+
+
+def place(cam, xr, yr, psi, cam_x=CAM_X, cam_h=CAM_H, pitch_deg=PITCH_DEG):
+    """Camera pose from the rear-axle pose (x, y, heading)."""
+    cam.location = (xr + cam_x * math.cos(psi), yr + cam_x * math.sin(psi), cam_h)
+    # Blender camera looks down -Z: tilt up 90 deg minus the pitch, then turn to the heading
+    cam.rotation_euler = (math.radians(90 - pitch_deg), 0, psi - math.pi / 2)
 
 
 def main():
@@ -155,14 +178,7 @@ def main():
     ap.add_argument("--start", type=float, default=3.0, help="start station [m]")
     a = ap.parse_args(argv)
 
-    track.load(a.json)
-    # dark patches get their darkness from real shadows here, not from dark paint
-    every = track.T["patches"]
-    track.T["patches"] = [p for p in every if p["Type"] != "dark"]
-    track.build()
-    track.T["patches"] = every
-    shadow_casters()
-    dev = setup_render(a.samples)
+    dev = build_scene(a.json, a.samples)
     cam = camera()
     out = Path(a.out)
     (out / "frames").mkdir(parents=True, exist_ok=True)
@@ -173,9 +189,7 @@ def main():
     for k in range(n):
         t = k / FPS
         p = pose(t, a.start)
-        cam.location = (p["xr"] + CAM_X * math.cos(p["psi"]), p["yr"] + CAM_X * math.sin(p["psi"]), CAM_H)
-        # Blender camera looks down -Z: tilt up 90 deg minus the pitch, then turn to the heading
-        cam.rotation_euler = (math.radians(90 - PITCH_DEG), 0, p["psi"] - math.pi / 2)
+        place(cam, p["xr"], p["yr"], p["psi"])
         bpy.context.scene.render.filepath = str(out / "frames" / f"f{k + 1:05d}.jpg")
         bpy.ops.render.render(write_still=True)
         rows.append(f"{k + 1},{t:.3f},{p['s']:.3f},{p['e']:.4f},{math.degrees(p['dpsi']):.3f},"

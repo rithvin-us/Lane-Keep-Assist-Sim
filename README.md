@@ -75,6 +75,7 @@ lka_detector_create('list')                  % installed lane detectors
 | MIL test bench (5 scenarios × 3 controllers) | `run_lka_mil()` | `results/mil/` |
 | Unreal camera bench | `run_lka_vision()` (`Scenarios={'S6_LightingTrack'}` for the Blender track, Windows only) | `results/vision/` |
 | Lighting test track (Blender render, any OS) | see "Lighting test track" below | `test_res/mobilenet/lighting_track/` |
+| **Closed loop with Blender camera** (plant + Mobilenet + LKA_Controller) | `run_lka_blender_sim()` (`Speed=8`, `Controller=1/2/3`), watch on the dashboard | `results/blender/<time>/` |
 | Detector timing | `measure_lka_timing()` | `results/timing/` |
 | Tests | `runtests('tests')` or `run_lka_checks()` | `results/checks/` |
 | Rebuild the Simulink models | `build_lka_models()` | `models/*.slx` |
@@ -113,6 +114,11 @@ run_lka_on_video('/tmp/drive/drive.mp4', Camera=C, Speed=15/3.6, LaneWidth=3.0, 
 score_lighting_track('test_res/mobilenet/lighting_track', '/tmp/drive/ground_truth.csv', ...
     'data/scenes/LightingTrack/track.json');
 ```
+Closed loop on the same track, nothing scripted (the plant moves the car, Blender renders
+what the camera sees at that pose, the unchanged `LKA_Controller` steers):
+`run_lka_blender_sim()`; the dashboard shows the camera, signals and the path traced over
+the track. Findings: `docs/bug_report.md` O10.
+
 In Unreal the same scene is scenario `S6_LightingTrack`. MathWorks' Unreal build loads USD
 scenes at run time **only on Windows** ("Run-time import of Universal Scene Description
 files is not supported by Unreal Engine on this operating system"); on Linux use the
@@ -138,6 +144,9 @@ exact error each missing piece gives: [`requirements/`](requirements/).
 | Vehicle and camera numbers still to measure | [`docs/vehicle_measurements.md`](docs/vehicle_measurements.md) |
 | Open team tasks / next stages | [`docs/team_actions.md`](docs/team_actions.md), [`docs/next_plan.md`](docs/next_plan.md) |
 | Archived detectors and how to bring one back | [`backup_lane_detection/README.md`](backup_lane_detection/README.md) |
+| How the algorithm works, MATLAB and Jetson Orin Nano / NX deployment | [`docs/algorithm_review.md`](docs/algorithm_review.md) |
+| Bugs fixed and open | [`docs/bug_report.md`](docs/bug_report.md) |
+| Project completion report | [`docs/completion_report.md`](docs/completion_report.md) |
 | Learning material | `docs/LKA_Learning_Lab.html`, `docs/LKA_Team_Guide.html` (written before the detector swap) |
 
 ## Conventions

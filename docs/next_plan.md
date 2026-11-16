@@ -1,5 +1,11 @@
 # Next plan (from 2026-10-18)
 
+> **Update 2026-11-16: detector swap.** The lane detector is now the **Mobilenet Approach**
+> (`perception/Mobilenet_Approach/`, `LKA.Vision.Detector = 'mobilenet'`). The team CNN
+> (UFLDv2), YOLOP, classic and LaneAssist detectors are archived in `backup_lane_detection/`.
+> Where this file talks about them it is history; the commands below were updated. Current
+> numbers: `perception/README.md`. Review and Jetson plan: `docs/algorithm_review.md`.
+
 Where we are: the controller, simulation benches, camera lane detection, video tools, the
 tight-track fix for the college videos and the CNN fine-tune kit are on branch
 `ccr-586dff79-exyk2l`. What is missing is **proof in MATLAB, real measurements, training data

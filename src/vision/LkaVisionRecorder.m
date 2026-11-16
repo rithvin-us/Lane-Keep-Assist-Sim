@@ -79,7 +79,7 @@ classdef LkaVisionRecorder < matlab.System
                 s = struct('Time', hud.Time, 'Frame', obj.Count, ...
                     'Left', sensor.Left.LateralOffset * (sensor.Left.Strength > 0), 'LeftOk', sensor.Left.Strength > 0, ...
                     'Right', sensor.Right.LateralOffset * (sensor.Right.Strength > 0), 'RightOk', sensor.Right.Strength > 0, ...
-                    'Centre', centre(sensor), 'Steer', hud.SteerDeg, 'State', hud.State, ...
+                    'Centre', centre(sensor), 'Heading', heading(sensor), 'Steer', hud.SteerDeg, 'State', hud.State, ...
                     'Speed', hud.SpeedKmh, 'Radius', radius);
                 lka_monitor_publish('sample', s, @() lka_annotate_frame(img, preview, sensor, hud, obj.Cam));
             end
@@ -122,4 +122,12 @@ function c = centre(sensor)
     if sensor.Left.Strength > 0 && sensor.Right.Strength > 0
         c = 0.5 * (sensor.Left.LateralOffset + sensor.Right.LateralOffset);
     end
+end
+
+function h = heading(sensor)
+% Lane heading relative to the vehicle [deg]: mean of the reported lines, NaN without one.
+    hs = [sensor.Left.HeadingAngle, sensor.Right.HeadingAngle];
+    ok = [sensor.Left.Strength, sensor.Right.Strength] > 0;
+    h = NaN;
+    if any(ok), h = rad2deg(mean(hs(ok))); end
 end

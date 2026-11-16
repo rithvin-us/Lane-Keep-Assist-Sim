@@ -358,14 +358,20 @@ anticipates the next arc. On the straights the output alternates around ±1000 m
 
 ## 8. Camera lane detection (rule I.2.3)
 
+> **Update 2026-11-16: detector swap.** The lane detector is now the **Mobilenet Approach**
+> (`perception/Mobilenet_Approach/`, `LKA.Vision.Detector = 'mobilenet'`). The team CNN
+> (UFLDv2), YOLOP, classic and LaneAssist detectors are archived in `backup_lane_detection/`.
+> Where this file talks about them it is history; the commands below were updated. Current
+> numbers: `perception/README.md`. Review and Jetson plan: `docs/algorithm_review.md`.
+
 The aBAJA 2027 rulebook (I.2.3) does not allow ground-truth or road-state sensors as
 inputs to the final algorithm. The submission configuration therefore gets the lane
 from the camera:
 
 ```
 Simulation 3D Camera (1280x720, f = 1109 px)
-  -> detector (LKA.Vision.Detector: 'yolop' | 'cnn' (team UFLDv2) | 'classic')
-  -> lane-line probability map (one contract for every detector, models/perception/README.md)
+  -> detector (LKA.Vision.Detector: 'mobilenet', any perception/<Approach>/deploy/<name>.json)
+  -> lane-line probability map (one contract for every detector, perception/README.md)
   -> metric bird's-eye view (monoCamera / birdsEyeView, 5 cm cells, 30 m ahead, +-6 m)
   -> sliding-window search per line (continuity prior +-0.45 m, cold window +-1.3 m)
   -> robust (Huber IRLS) polynomial fit in metres -> LaneSensorBus (rear-axle clothoid)
@@ -506,7 +512,7 @@ organisers' track video or a phone recording of the college track:
 
 ```matlab
 run_lka_on_test_videos                       % every vids/*.mp4 -> test_res/<name>/ + summary.csv
-run_lka_on_video('vids/clip.mp4', Detector='cnn', Camera='auto', HFovDeg=70, CameraHeight=1.2)
+run_lka_on_video('vids/clip.mp4', Detector='mobilenet', Camera='auto', HFovDeg=70, CameraHeight=1.2)
 ```
 
 1. **Camera.** With `Camera='auto'` the intrinsics come from the field of view (phone main
