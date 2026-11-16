@@ -3,12 +3,12 @@ function S = run_lka_on_test_videos(options)
 %
 % Syntax:
 %   S = run_lka_on_test_videos()
-%   S = run_lka_on_test_videos(Folder='vids', OutRoot='test_res', Detector='cnn')
+%   S = run_lka_on_test_videos(Folder='vids', OutRoot='test_res/mobilenet', Detector='mobilenet')
 %   S = run_lka_on_test_videos(Files={'clip.mp4'})        % only these files of Folder
 %
 % Runs run_lka_on_video on each *.mp4 / *.mov in Folder (unknown phone mount: camera
 % pitch auto-calibrated, lens height CameraHeight, horizontal field of view HFovDeg)
-% and writes, per video, OutRoot/<video name>/:
+% and writes, per video, OutRoot/<video name>/ (default OutRoot: test_res/<Detector>):
 %   lka_video_annotated.mp4   camera view with the detected lines and the LKA commands
 %   lka_video_overview.png    lane position, heading, radius, steering, speed, yaw
 %   lka_video_path.png        path from visual odometry with the detected lines
@@ -24,7 +24,7 @@ function S = run_lka_on_test_videos(options)
         options.Folder char = ''
         options.OutRoot char = ''
         options.Files = []
-        options.Detector char = 'cnn'
+        options.Detector char = 'mobilenet'
         options.HFovDeg (1,1) double = 70
         options.CameraHeight (1,1) double = 1.2
         options.LaneWidth (1,1) double = NaN
@@ -34,7 +34,7 @@ function S = run_lka_on_test_videos(options)
     end
     root = fileparts(fileparts(mfilename('fullpath')));
     if isempty(options.Folder), options.Folder = fullfile(root, 'vids'); end
-    if isempty(options.OutRoot), options.OutRoot = fullfile(root, 'test_res'); end
+    if isempty(options.OutRoot), options.OutRoot = fullfile(root, 'test_res', options.Detector); end
     if ~isfolder(options.OutRoot), mkdir(options.OutRoot); end
 
     if isempty(options.Files) && ~iscell(options.Files)

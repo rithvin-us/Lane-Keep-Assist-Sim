@@ -3,11 +3,11 @@ function results = run_lka_vision(options)
 %
 % Syntax:
 %   results = run_lka_vision()
-%   results = run_lka_vision(Scenarios={'S1_Nominal','S2_SpeedLimit'}, Detectors={'yolop','classic'})
+%   results = run_lka_vision(Scenarios={'S1_Nominal','S2_SpeedLimit'}, Detectors={'mobilenet'})
 %
 % Name-value options:
 %   Scenarios  - scenario names from generate_lka_scenarios (default {'S1_Nominal'})
-%   Detectors  - {'yolop' | 'cnn' | 'classic'} (default {'yolop'})
+%   Detectors  - detector names (lka_detector_create('list'), default {'mobilenet'})
 %   Controller - 1 pure pursuit, 2 Stanley 2025, 3 MPC (default 1)
 %   Video      - write results/vision/<scenario>_<detector>.mp4 (default true)
 %   Dataset    - record frames for the detector benchmark (default false)
@@ -23,7 +23,7 @@ function results = run_lka_vision(options)
 
     arguments
         options.Scenarios cell = {'S1_Nominal'}
-        options.Detectors cell = {'yolop'}
+        options.Detectors cell = {'mobilenet'}
         options.Controller (1,1) double = 1
         options.Video (1,1) logical = true
         options.Dataset (1,1) logical = false
@@ -51,6 +51,9 @@ function results = run_lka_vision(options)
     for s = 1:numel(scenarios)
         sc = scenarios(s);
         r = sc.Road;
+        scene = sc.Scene;                               % Unreal scene of this scenario
+        if isempty(scene), scene = LKA0.Vision.Bench.ScenePath; end
+        set_param([mdl '/Simulation 3D Scene Configuration'], 'RoadRunnerProjectPath', scene);
         assignin('base', 'SCN', sc.P);
         assignin('base', 'ROAD', struct('s', r.s, 'x', r.x, 'y', r.y, 'psi', r.psi, 'kappa', r.kappa, ...
             'dkappa', r.dkappa, 'width', r.width, 'lineWidth', r.lineWidth));

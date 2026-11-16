@@ -3,29 +3,33 @@ function out = run_lka_on_video(videoFile, options)
 %
 % Syntax:
 %   out = run_lka_on_video('track.mp4')
-%   out = run_lka_on_video('track.mp4', Detector='cnn', Camera='auto', HFovDeg=90)
+%   out = run_lka_on_video('track.mp4', Detector='mobilenet', Camera='auto', HFovDeg=90)
 %   out = run_lka_on_video('zed.mp4', StereoEye='left', SpeedLog='speed.csv')
 %
-% For every frame (resampled to the LKA rate, 20 Hz): lane detection (classic / team CNN
-% / YOLOP) -> metric bird's-eye -> left and right lane lines; vehicle motion from the
+% For every frame (resampled to the LKA rate, 20 Hz): lane detection (LKA.Vision.Detector,
+% default the Mobilenet Approach U-Net) -> metric bird's-eye -> left and right lane lines; vehicle motion from the
 % road texture (bird's-eye visual odometry) unless a speed log is given; then the
 % unchanged LKA_Controller is replayed open loop (lka_replay_controller): the car in the
 % video does not react, so the steering and turning radius are what the LKA WOULD
 % command at each moment.
 %
 % Name-value options:
-%   Detector   'cnn' (default when the team model and an ONNX back end exist) | 'classic' | 'yolop'
+%   Detector   'mobilenet' (default) or any other perception/<Approach>/deploy/<name>.json
+%              (lka_detector_create('list'))
 %   Camera     camera struct (fields as LKA.Vision.Camera), or 'auto' to estimate the pitch
 %              from the lane lines (unknown mount)
 %   HFovDeg    horizontal field of view used to build the intrinsics with Camera='auto'
 %              (default 70, a phone main camera; simulator camera 60; ZED 2i HD720 ~ 87)
-%   LaneWidth  known lane width [m] -> the camera height is solved from it (Camera='auto').
+%   LaneWidth  known lane width [m] -> the camera height is solved from it (Camera='auto');
+%              with a given Camera struct it sets the lane-width band of the search
 %              Default NaN: CameraHeight is trusted and the lane width is measured. One of
 %              the two must be known: a single camera cannot tell a narrow lane seen from
 %              low down from a wide lane seen from high up.
 %   CameraHeight  lens height above the road [m] with Camera='auto' (default 1.2)
 %   MaxRange   furthest lane point used [m] (default 20; tight bends, low-resolution video)
 %   StereoEye  'none' | 'left' | 'right': crop one eye of a side-by-side stereo video
+%   Crop       'auto' (default): cut black letterbox / pillarbox bars, found once on frames
+%              spread over the clip (as the Mobilenet Approach training does) | 'none'
 %   Speed      constant speed [m/s] instead of visual odometry (optional)
 %   SpeedLog   CSV with columns time_s, speed_mps [, yaw_rate_radps] (optional)
 %   StartTime, EndTime  [s] (default whole video)
@@ -57,6 +61,7 @@ function out = run_lka_on_video(videoFile, options)
         options.CameraHeight (1,1) double = 1.2
         options.MaxRange (1,1) double = 20
         options.StereoEye char {mustBeMember(options.StereoEye, {'none', 'left', 'right'})} = 'none'
+        options.Crop char {mustBeMember(options.Crop, {'auto', 'none'})} = 'auto'
         options.Speed double = []
         options.SpeedLog char = ''
         options.StartTime (1,1) double = 0
@@ -85,10 +90,7 @@ function out = run_lka_on_video(videoFile, options)
     end
     if ~isfolder(options.OutDir), mkdir(options.OutDir); end
     if isempty(options.Detector)
-        options.Detector = 'classic';
-        if lka_onnx_runtime_available() && isfile(fullfile(V.DetectorDir, 'team_cnn.onnx'))
-            options.Detector = 'cnn';
-        end
+        options.Detector = V.Detector;
     end
     V.Detector = options.Detector;
     det = lka_detector_create(V);
@@ -97,7 +99,12 @@ function out = run_lka_on_video(videoFile, options)
     % ---------------- frames at (up to) the LKA rate
     vr = VideoReader(videoFile);
     tEnd = min(options.EndTime, vr.Duration);
-    readNext = makeReader(vr, options.StartTime, tEnd, LKA.Ts, options.StereoEye);
+    box = [];
+    if strcmp(options.Crop, 'auto')
+        box = contentBox(videoFile, options.StereoEye);
+    end
+    prep = @(img) cropBox(cropEye(img, options.StereoEye), box);
+    readNext = makeReader(vr, options.StartTime, tEnd, LKA.Ts, prep);
 
     % ---------------- camera
     first = readNext();
@@ -111,7 +118,7 @@ function out = run_lka_on_video(videoFile, options)
         C0.ImageSize = [h w]; C0.PrincipalPoint = [w h] / 2; C0.FocalLength = [f f];
         C0.Height = options.CameraHeight;
         imgs = calibrationFrames(videoFile, options.StartTime, tEnd, options.AutoFrames, LKA.Ts, ...
-            options.StereoEye, strcmp(options.CalibrationFrames, 'spread'));
+            prep, strcmp(options.CalibrationFrames, 'spread'));
         probs = cellfun(@(im) det.Detect(fitToCamera(im, C0)), imgs, 'UniformOutput', false);
         Vcal.Ts = LKA.Ts;
         [C, cal] = lka_autocalibrate_camera(probs, C0, Vcal, LaneWidth=options.LaneWidth);
@@ -122,6 +129,10 @@ function out = run_lka_on_video(videoFile, options)
             C.PitchDeg, C.Height, C.FocalLength(1), W, numel(imgs), options.CalibrationFrames);
     elseif isstruct(options.Camera)
         C = options.Camera;
+        if isfinite(options.LaneWidth)            % known camera and known lane: set the width band
+            LKA = lka_set_lane_width(LKA, options.LaneWidth, MinFactor=0.5, MaxFactor=2);
+            V.Track = LKA.Vision.Track;
+        end
     else
         C = V.Camera;
     end
@@ -291,17 +302,16 @@ function out = run_lka_on_video(videoFile, options)
     % ---------------- pass 2: annotated video
     kCmd = 1 ./ T.TurnRadius_m;              % arc drawn = the HUD turning radius (after rate limit)
     if options.Video
-        vw = VideoWriter(fullfile(options.OutDir, 'lka_video_annotated.mp4'), 'MPEG-4');
+        mp4 = fullfile(options.OutDir, 'lka_video_annotated.mp4');
         % frames are kept at (up to) the 20 Hz grid, so the source spacing alternates on a
         % 30 fps clip (33 / 67 ms): the median gap gave 17 fps and an 18 % slow video
-        vw.FrameRate = max(1, (n - 1) / max(tf(end) - tf(1), LKA.Ts));
-        vw.Quality = 90;
-        open(vw);
-        closeVideo = onCleanup(@() close(vw));   % finalise the MP4 even when a frame fails
+        frameRate = max(1, (n - 1) / max(tf(end) - tf(1), LKA.Ts));
+        vw = LkaVideoWriter(mp4, frameRate);     % MPEG-4, or MJPEG AVI + ffmpeg where MATLAB has none
+        closeVideo = onCleanup(@() vw.close());   % finalise the MP4 even when a frame fails
         if options.Monitor
             lka_monitor_publish('phase', 'writing annotated video');
         end
-        readNext = makeReader(VideoReader(videoFile), options.StartTime, tEnd, LKA.Ts, options.StereoEye);
+        readNext = makeReader(VideoReader(videoFile), options.StartTime, tEnd, LKA.Ts, prep);
         for k = 1:n
             fr = readNext();
             if isempty(fr.img), break; end
@@ -310,7 +320,7 @@ function out = run_lka_on_video(videoFile, options)
                 'LaneOffset', T.LaneCentreOffset_m(k), 'HeadingDeg', T.HeadingError_deg(k), ...
                 'Detector', shortName, 'Ms', sum(stageMs(k, :)), 'Time', T.Time_s(k));
             frame = lka_annotate_frame(fitToCamera(fr.img, C), previews{k}, sensors(k), hud, cam, overlays{k});
-            writeVideo(vw, frame);
+            vw.write(frame);
             if options.Monitor
                 lka_monitor_publish('sample', controlSample(T(k, :), k, n), frame);
             end
@@ -355,7 +365,7 @@ function s = controlSample(row, k, n)
         'DetectMs', row.Detect_ms, 'WarpMs', row.BevOdometry_ms, 'FitMs', row.LaneFit_ms);
 end
 
-function readNext = makeReader(vr, tStart, tEnd, Ts, eye)
+function readNext = makeReader(vr, tStart, tEnd, Ts, prep)
 % Returns frames at the first video timestamp at or after each Ts grid time.
     if tStart > 0
         vr.CurrentTime = tStart;
@@ -372,14 +382,14 @@ function readNext = makeReader(vr, tStart, tEnd, Ts, eye)
             end
             if t + 1e-6 >= nextT
                 nextT = nextT + Ts * max(1, floor((t - nextT) / Ts) + 1);
-                fr = struct('img', cropEye(img, eye), 't', t);
+                fr = struct('img', prep(img), 't', t);
                 return
             end
         end
     end
 end
 
-function imgs = calibrationFrames(videoFile, tStart, tEnd, n, Ts, eye, spread)
+function imgs = calibrationFrames(videoFile, tStart, tEnd, n, Ts, prep, spread)
 % Frames for the camera auto-calibration: n frames spread evenly over [tStart, tEnd]
 % (bends to the left and right average out) or the first n frames at Ts.
     vr = VideoReader(videoFile);
@@ -393,7 +403,7 @@ function imgs = calibrationFrames(videoFile, tStart, tEnd, n, Ts, eye, spread)
     for t = ts(ts < vr.Duration)
         vr.CurrentTime = t;
         if hasFrame(vr)
-            imgs{end + 1} = cropEye(readFrame(vr), eye); %#ok<AGROW>
+            imgs{end + 1} = prep(readFrame(vr)); %#ok<AGROW>
         end
     end
     if isempty(imgs)
@@ -433,6 +443,37 @@ function img = cropEye(img, eye)
     end
     if size(img, 3) == 1
         img = repmat(img, 1, 1, 3);
+    end
+end
+
+function box = contentBox(videoFile, eye)
+% Picture area inside black bars: brightest value per pixel over 12 frames spread over the
+% clip, rows / columns whose mean stays above 10 (lane_common.content_box_from_video).
+    vr = VideoReader(videoFile);
+    acc = [];
+    for t = linspace(0, max(vr.Duration - 0.1, 0), 12)
+        vr.CurrentTime = t;
+        if hasFrame(vr)
+            g = max(cropEye(readFrame(vr), eye), [], 3);
+            if isempty(acc), acc = g; else, acc = max(acc, g); end
+        end
+    end
+    box = [];
+    if isempty(acc), return, end
+    rows = find(mean(acc, 2) > 10);
+    cols = find(mean(acc, 1) > 10);
+    if isempty(rows) || isempty(cols), return, end
+    box = [rows(1) rows(end) cols(1) cols(end)];
+    if isequal(box, [1 size(acc, 1) 1 size(acc, 2)])
+        box = [];                                % no bars
+    else
+        fprintf('[LKA video] letterbox: using rows %d-%d, columns %d-%d of %dx%d\n', box, size(acc, 1), size(acc, 2));
+    end
+end
+
+function img = cropBox(img, box)
+    if ~isempty(box)
+        img = img(box(1):box(2), box(3):box(4), :);
     end
 end
 

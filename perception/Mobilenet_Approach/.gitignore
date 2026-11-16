@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+frames/
+dataset/
+round1/
+round2/
+runs/
+*.zip
+*.mp4

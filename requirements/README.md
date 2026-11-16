@@ -27,9 +27,9 @@ feature that is unavailable without it.
 - **Minimum to run the MIL test bench and the camera chain:** MATLAB, Simulink, Automated
   Driving Toolbox, Computer Vision Toolbox, Image Processing Toolbox, Model Predictive Control
   Toolbox, Control System Toolbox.
-- **Additionally for the neural detectors (`cnn`, `yolop`):** Deep Learning Toolbox and the
-  Deep Learning Toolbox Converter for ONNX Model Format, plus `models/perception/team_cnn.onnx`
-  from the team Drive (it is over 100 MB and is not in git).
+- **For the lane detector in MATLAB (`mobilenet`):** Deep Learning Toolbox and the Deep
+  Learning Toolbox Converter for ONNX Model Format. The live camera path runs the network in
+  Python (`perception/Mobilenet_Approach/requirements.txt`) and needs neither.
 - **Additionally for the GPU paths and the GPU timing table:** Parallel Computing Toolbox.
 - **Not required:** Signal Processing Toolbox. It used to be, through one `hann` call in
   `src/vision/lka_bev_odometry.m`; that call is now a local `hannWindow`, so the camera path runs

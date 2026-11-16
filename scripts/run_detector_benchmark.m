@@ -1,14 +1,13 @@
 function T = run_detector_benchmark(options)
-% RUN_DETECTOR_BENCHMARK YOLOP vs team CNN vs classic vs LaneAssist, same frames.
+% RUN_DETECTOR_BENCHMARK Every installed lane detector (perception/*/deploy) on the same frames.
 %
 % Syntax:
 %   T = run_detector_benchmark()                                    % record + score + closed loop
 %   T = run_detector_benchmark(Dataset='data/vision_datasets/S1_Nominal_classic', ClosedLoop=false)
 %
 % Name-value options:
-%   Dataset    - recorded dataset folder; empty = record one with run_lka_vision (S1, classic)
-%   Detectors  - default: classic, laneassist (ported, docs/laneassist_comparison.md),
-%                yolop (if the ONNX add-on exists), cnn (if team_cnn.onnx exists)
+%   Dataset    - recorded dataset folder; empty = record one with run_lka_vision (S1)
+%   Detectors  - default: every installed detector (lka_detector_create('list'))
 %   ClosedLoop - also run run_lka_vision for each detector and append the lane KPIs (default true)
 %   OutDir     - default results/benchmark
 % Writes detector_benchmark.csv, detector_benchmark.md and detector_benchmark.png to OutDir.
@@ -27,17 +26,11 @@ function T = run_detector_benchmark(options)
     evalin('base', 'lkaProfile = ''baja''; lka_controller_params;');
     V = evalin('base', 'LKA.Vision');
     if isempty(options.Detectors)
-        options.Detectors = {'classic', 'laneassist'};
-        if exist('importNetworkFromONNX', 'file') == 2
-            options.Detectors{end + 1} = 'yolop';
-            if isfile(fullfile(V.DetectorDir, 'team_cnn.onnx'))
-                options.Detectors{end + 1} = 'cnn';
-            end
-        end
+        options.Detectors = lka_detector_create('list');
     end
     if isempty(options.Dataset)
-        run_lka_vision(Scenarios={'S1_Nominal'}, Detectors={'classic'}, Video=false, Dataset=true);
-        options.Dataset = fullfile(root, 'data', 'vision_datasets', 'S1_Nominal_classic');
+        run_lka_vision(Scenarios={'S1_Nominal'}, Detectors=options.Detectors(1), Video=false, Dataset=true);
+        options.Dataset = fullfile(root, 'data', 'vision_datasets', ['S1_Nominal_' options.Detectors{1}]);
     end
 
     T = lka_detector_benchmark(options.Dataset, options.Detectors, V);

@@ -36,7 +36,7 @@ function testBenchBuildsAndCompiles(testCase)
         testCase.verifyGreaterThan(getSimulinkBlockHandle([mdl '/' b{1}]), 0, b{1});
     end
     testCase.verifyEqual(getSimulinkBlockHandle([mdl '/Virtual Lane Sensor']), -1);
-    LKA = evalin('base', 'LKA'); LKA.Vision.Detector = 'classic'; assignin('base', 'LKA', LKA);
+    LKA = evalin('base', 'LKA'); LKA.Vision.Detector = 'mobilenet'; assignin('base', 'LKA', LKA);
     vehicle = evalin('base', 'vehicle');
     sc = generate_lka_scenarios(vehicle); sc = sc(1); r = sc.Road;
     assignin('base', 'SCN', sc.P);

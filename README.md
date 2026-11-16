@@ -1,157 +1,156 @@
-# Lane Keeping Assist (LKA) - MATLAB & Simulink
-## SAE / aBAJA (Autonomous Baja) Competition
+# Lane Keeping Assist (LKA): aBaja team repository
 
-This repository contains the simulation, control algorithms, vehicle dynamics modeling, and verification framework for the **Lane Keeping Assist (LKA)** system developed for the SAE / aBAJA autonomous challenge.
+The camera lane detector, the lateral controller and the test benches for the aBaja Lane
+Keep Assist event. The parts:
 
-The repository follows **MathWorks Automotive Advisory Board (MAAB)** guidelines and the **ISO 11270** standard for LKAS verification.
+- **Perception (Python + ONNX):** a MobileNetV2 U-Net finds the painted lane lines in the
+  camera image (`perception/Mobilenet_Approach/`).
+- **Lane geometry + controller (MATLAB / Simulink):** the lane-line map goes into a metric
+  bird's-eye view, lane fit and Kalman tracker. Then pure pursuit / Stanley / MPC produce
+  the steering command (`src/`, `models/LKA_Controller.slx`).
+- **Benches:** MIL scenarios, recorded track videos, the Unreal camera bench, a live ZED 2i
+  camera, and a dashboard that shows all of them.
 
----
-
-## 1. Quickstart
-
-1. Launch MATLAB **R2026a** (the models are saved in R2026a; the competition skeleton needs R2025b or newer).
-2. Set your MATLAB working directory to the root of this repository (the cloned `LKA---Simulink-/` folder).
-3. Initialise paths, parameters and bus objects:
-   ```matlab
-   run('config/startup.m')
-   ```
-4. Run the LKA MIL test bench: 5 scenarios × 3 controllers. Figures and the KPI table are written to `results/mil/`:
-   ```matlab
-   results = run_lka_mil();                                   % everything (~15 min)
-   results = run_lka_mil(Scenarios={'S1_Nominal'}, Controllers=1);   % one run
-   ```
-5. Run the tests:
-   ```matlab
-   runtests('tests')
-   ```
-6. Put the LKA into the competition model for RoadRunner co-simulation (see `docs/lka_controller.md` §5):
-   ```matlab
-   integrate_lka_into_skeleton()
-   ```
-7. Camera lane detection (rule I.2.3: no ground-truth lane input in the submission).
-   The official LKA track runs in Unreal from `data/scenes/LKA/LKA.usd` (no RoadRunner needed):
-   ```matlab
-   report = calibrate_vision_bench();                   % once: frame map, camera height check
-   run_lka_vision(Detectors={'classic','cnn','yolop'}); % camera-in-the-loop, video in results/vision
-   run_detector_benchmark();                            % YOLOP vs team UFLDv2 vs classic
-   ```
-   Detector selection: `LKA.Vision.Detector`; model contract: `models/perception/README.md`.
-   The networks run on the GPU through the ONNX importer add-on (onnxruntime CPU fallback).
-   Audit of the 2025 Python stack: `docs/adas2026_audit.md`.
-   Comparison against the `tsiggi/LaneAssist` reference detector (ported as
-   `LKA.Vision.Detector = 'laneassist'`): `docs/laneassist_comparison.md`.
-8. Recorded track videos (lane, LKA steering, turning radius, speed, yaw) and the live dashboard:
-   ```matlab
-   start_lka_dashboard();        % http://127.0.0.1:8050 (live run, GPU, results)
-   run_lka_on_test_videos();     % every vids/*.mp4 -> test_res/<name>/ (MP4, PNG, CSV) + summary.csv
-   run_lka_pick_video();         % choose one video in a dialog, results open by themselves
-   watch_lka_videos();           % process every video copied into vids/ automatically
-   ```
-   The video tools use the **tight-track profile** by default (2 m college lane, bends down to
-   R 3 m): with the official-track settings that lane was fitted almost straight
-   (`docs/lka_controller.md` §9.1). For a video of the official track pass `TrackProfile='official'`.
-   For a live test on the college track set `lkaLaneWidth = 2.0; lkaTrackProfile = 'tight';`
-   before `run('config/startup.m')`. See `docs/lka_controller.md` §9-10.
-   Annotated video without MATLAB's VideoWriter (needed on a headless machine, see
-   `requirements/system.md`): render the frames, then mux with ffmpeg. Examples from the
-   college-track clips are in `test_res/<clip>/lka_annotated_<detector>.mp4`.
-   See `docs/lka_controller.md` §9-10.
-9. One command to check everything after a change (also from a terminal: `tools/run_lka.bat checks`):
-   ```matlab
-   run_lka_checks();                 % all unit tests, report in results/checks/
-   run_lka_checks(Level='full');     % + closed-loop MIL tests + every video (straight-lane alarm)
-   ```
-10. When finished:
-   ```matlab
-   run('config/shutdown.m')
-   ```
-
-Handing this repository to another person or agent: **[`CONTEXT.md`](CONTEXT.md)** — current
-state, what was measured and decided, the environment traps, and the open work.
-
-How the LKA works (lane perception, supervisor, pure pursuit / Stanley 2025 / MPC,
-limits, turning radius): **[`docs/lka_controller.md`](docs/lka_controller.md)**.
-New to MATLAB or to the project: open **`docs/LKA_Learning_Lab.html`** in a browser (interactive
-lane-fit and steering labs, code reader, command builder, quiz, glossary) and
-`docs/LKA_Team_Guide.html`.
-What the team still has to measure, record, train or install:
-**[`docs/team_actions.md`](docs/team_actions.md)**.
-The stages after that, with owners and pass/fail gates: **[`docs/next_plan.md`](docs/next_plan.md)**.
+Start with `config/startup.m`; every script assumes it ran.
 
 ---
 
-## 2. Repository Layout
+## Folder layout
 
-```plaintext
-LKA---Simulink-/
-├── config/              startup.m (paths, params, buses), shutdown.m
-├── data/
-│   ├── bus_definitions/ create_lka_buses.m        LaneSensorBus, LaneEstimateBus, LkaInfoBus (+ legacy buses)
-│   ├── parameters/      vehicle_params.m          Baja mass, geometry, tyres, steering 32 deg / 60 deg/s / 0.1 s
-│   │                    sensor_params.m           emulated detector: 20 Hz, 50 ms, noise, dropouts
-│   │                    lka_controller_params.m   builds LKA (lka_build_params.m) + legacy `controller`
-│   └── scenarios/       generate_lka_scenarios.m  S1..S5 MIL scenarios; tracks/LKA_IPG.xodr (official track)
-│                        generate_test_scenarios.m legacy script scenarios
-├── models/              (generated by scripts/build_lka_models.m)
-│   ├── LKA_Controller.slx       complete LKA (referenced model)
-│   ├── VirtualLaneSensor.slx    emulated lane detector (subsystem reference)
-│   └── LKA_MIL_TestBench.slx    closed-loop Baja test bench
-├── src/
-│   ├── perception/      lane geometry, boundary validation, centre fusion, Kalman tracker, LDW
-│   ├── controllers/     pure pursuit, Stanley 2025 port, curvature MPC, steering geometry, limits
-│   │                    (+ legacy script controllers stanley_steer_control.m, pure_pursuit_steer.m)
-│   ├── plant/           nonlinear single-track Baja model
-│   ├── evaluation/      result extraction, KPIs, ground-truth wheel-in-lane metrics
-│   └── utilities/       parameter builder, OpenDRIVE reader, road lookup
-├── scripts/             build_lka_models, run_lka_mil, plot_lka_results, plot_lka_comparison,
-│                        integrate_lka_into_skeleton, run_baseline_simulation (legacy), evaluate_kpis (legacy)
-│                        run_lka_on_video, run_lka_on_test_videos, run_lka_pick_video, watch_lka_videos, run_lka_checks
-├── tools/               dashboard server, ONNX export / parity tools, run_lka.bat / run_lka.sh (matlab -batch),
-│                        finetune/ (college frames + labels → UFLDv2 training data, docs/team_actions.md item 8)
-├── tests/               unit_tests/test_lka_core.m, scenario_tests/test_lka_mil_scenarios.m (+ legacy tests)
-├── docs/                lka_controller.md (design), mathematical_models.md, references/
-├── requirements/        MathWorks products, Python packages, system software (+ lka_check_requirements)
-├── results/mil/         figures and lka_mil_kpis.csv from run_lka_mil
-├── results/benchmark/   detector comparison: classic vs laneassist vs cnn vs yolop
-├── third_party/         licences of the read-only reference checkouts
-└── SoftwareVirtualWorldSimulation-master/   aBaja 2026 competition skeleton (aBaja2026.slx + RoadRunner co-sim)
+```
+Lane-Keep-Assist-Sim/
+├── perception/                    lane detectors: one folder per approach (perception/README.md)
+│   └── Mobilenet_Approach/        ACTIVE detector: U-Net + MobileNetV2, 3 classes (road / lane / background)
+│       ├── training/              01..05 scripts: frames -> CVAT labels -> dataset -> train -> predict
+│       ├── weights/               best.pt (PyTorch), config.json, log.csv
+│       ├── deploy/                export_onnx.py -> mobilenet_unet_288x480.onnx + mobilenet.json (MATLAB runs this)
+│       └── realtime/lane_node.py  live node: camera / ZED 2i -> network -> MATLAB over TCP
+├── src/                           MATLAB algorithm code (called by the Simulink models)
+│   ├── vision/                    detector adapter (ONNX), camera model, bird's-eye warp, lane search + fit, annotation
+│   ├── perception/                boundary validation, lane-centre fusion, Kalman lane tracker, lane departure
+│   ├── controllers/               pure pursuit, Stanley 2025, curvature MPC, steering geometry and limits
+│   ├── plant/ sensors/ evaluation/ utilities/ legacy/
+├── models/                        Simulink models, all GENERATED by scripts/build_lka_models.m (models/README.md)
+├── scripts/                       entry points (table below)
+├── config/                        startup.m (paths, parameters, buses), shutdown.m
+├── data/                          parameters, bus definitions, scenarios, the Unreal LKA scene
+├── tests/                         unit_tests/, scenario_tests/, helpers/, fixtures/
+├── tools/                         dashboard (lka_dashboard.py + dashboard/), onnxruntime back end, run_lka.sh / .bat
+├── docs/                          design notes, real_time_guide.md, team actions, vehicle measurements
+├── requirements/                  MATLAB toolboxes, Python packages, system software
+├── results/                       MIL figures + KPIs, live sessions (results/live/), timing
+├── test_res/<detector>/<clip>/    recorded-video runs (annotated MP4, CSV, plots)
+├── vids/                          recorded college-track clips
+├── backup_lane_detection/         ARCHIVED detectors (classic, LaneAssist, YOLOP, UFLDv2): not on the path
+└── SoftwareVirtualWorldSimulation-master/   aBaja 2026 competition skeleton (aBaja2026.slx, RoadRunner)
 ```
 
----
+## Lane detector in one paragraph
 
-## 3. Requirements
+`LKA.Vision.Detector = 'mobilenet'` (the default) loads
+`perception/Mobilenet_Approach/deploy/mobilenet.json`. Every detector has the same
+contract: **RGB image in, lane-line probability map out** (`det.Detect(rgb)`). Everything
+after it (bird's-eye view, lane fit, tracker, controller) is shared. To try another model,
+add `perception/<Name>_Approach/deploy/<name>.json` + its ONNX and set
+`LKA.Vision.Detector = '<name>'`; see `perception/README.md`. The network runs in two places:
+- **inside MATLAB** (ONNX importer, CPU, about 115 ms/frame) for recorded videos and the
+  Unreal bench;
+- **in the Python lane node** (onnxruntime, CPU, 25–33 ms/frame) for the live camera.
 
-Full list, with the exact error each missing piece produces: **[`requirements/`](requirements/)**
-(`matlab_toolboxes.md`, `python-requirements.txt`, `system.md`). From MATLAB:
+## Main commands
 
 ```matlab
 run('config/startup.m')
-lka_check_requirements        % every product, package and file, and what is missing here
+lka_check_requirements                       % what is installed / missing
+lka_detector_create('list')                  % installed lane detectors
 ```
 
-MATLAB **R2026a or newer**. Required for the MIL bench and the camera chain:
+| Task | Command | Output |
+|---|---|---|
+| Live ZED 2i camera | node: `perception/Mobilenet_Approach/.venv/bin/python realtime/lane_node.py --camera 0 --zed`, then `run_lka_live(CameraHeight=…, PitchDeg=…)` | `results/live/<time>/`. Full steps: [`docs/real_time_guide.md`](docs/real_time_guide.md) |
+| Recorded clip | `run_lka_on_video('clip.mp4', Camera='auto')` | `test_res/mobilenet/<clip>/` |
+| All clips in `vids/` | `run_lka_on_test_videos()` | `test_res/mobilenet/` + `summary.csv` |
+| Pick a clip in a dialog | `run_lka_pick_video()` | same |
+| Dashboard (live run, results, CPU/GPU) | `start_lka_dashboard()` or `python3 tools/lka_dashboard.py` | http://127.0.0.1:8050 |
+| MIL test bench (5 scenarios × 3 controllers) | `run_lka_mil()` | `results/mil/` |
+| Unreal camera bench | `run_lka_vision()` (`Scenarios={'S6_LightingTrack'}` for the Blender track, Windows only) | `results/vision/` |
+| Lighting test track (Blender render, any OS) | see "Lighting test track" below | `test_res/mobilenet/lighting_track/` |
+| Detector timing | `measure_lka_timing()` | `results/timing/` |
+| Tests | `runtests('tests')` or `run_lka_checks()` | `results/checks/` |
+| Rebuild the Simulink models | `build_lka_models()` | `models/*.slx` |
+| Put the LKA into the competition model | `integrate_lka_into_skeleton()` | `aBaja2026.slx` |
 
-The models and scripts in this repository use:
-- **MATLAB & Simulink**, **Stateflow** (LKA mode logic)
-- **Automated Driving Toolbox** (`monoCamera`, `birdsEyeView`, Simulation 3D / Unreal blocks)
-- **Control System Toolbox** (required by the MPC controller build chain)
-- **Model Predictive Control Toolbox** (`mpcActiveSetSolver` in the MPC controller)
-- **Computer Vision Toolbox** and **Image Processing Toolbox** (lane detector, annotated video)
-- **Deep Learning Toolbox** with the add-on **Deep Learning Toolbox Converter for ONNX Model Format**
-  (team CNN and YOLOP; Python onnxruntime is the CPU fallback)
-- **Parallel Computing Toolbox** (GPU, optional)
-- **RoadRunner** and **RoadRunner Scenario**: only for the competition co-simulation in `aBaja2026.slx`
+Python side (`perception/Mobilenet_Approach/`, own venv):
 
-The LKA's own vehicle model is a MATLAB function (`src/plant`), so Vehicle Dynamics Blockset and
-Simscape are not needed for it; the organisers' `aBaja2026.slx` may need further products.
+| Task | Command |
+|---|---|
+| Set up | `uv venv -p 3.12 .venv` + `uv pip install …` (see its `requirements.txt`) |
+| Train / label | `training/01_extract_frames.py` … `05_predict.py` (its README) |
+| Export after training | `.venv/bin/python deploy/export_onnx.py` |
+| Live node | `.venv/bin/python realtime/lane_node.py --camera 0 --zed` (or `--video clip.mp4`) |
 
----
+## Lighting test track (Blender)
 
-## 4. Key Sources and References
+A 234 m track built in Blender from one MATLAB definition (`data/scenarios/lka_lighting_track.m`):
+30° and 60° bends, an S-bend, sun and glare patches and real shadows (tree dapple, a shadow
+band through a 60° bend, pole bars, a long dark section).
 
-1. **Rajamani, Rajesh (2012)**. *Vehicle Dynamics and Control*. 2nd Edition, Springer. *(Used for 2-DOF bicycle model and lateral deviation kinematics).*
-2. **Snider, Jarrod M. (2009)**. *Automatic Steering Methods for Autonomous Automobile Path Tracking*. Carnegie Mellon University, CMU-RI-TR-09-08. *(Used for the Stanley and Pure Pursuit steering laws).*
-3. **ISO 11270:2014**. *Intelligent transport systems — Lane keeping assistance systems (LKAS) — Performance requirements and test procedures*. *(Used for pass/fail KPI validation).*
-4. **MathWorks Automotive Advisory Board (MAAB)**. *Control Algorithm Modeling Guidelines Using MATLAB, Simulink, and Stateflow*.
+```bash
+# 1. geometry -> JSON (MATLAB: lka_lighting_track('data/scenes/LightingTrack/track.json'))
+# 2. JSON -> USD scene for Unreal (+ preview images)
+blender -b --factory-startup --python tools/blender/build_lighting_track.py -- \
+    data/scenes/LightingTrack/track.json data/scenes/LightingTrack/LightingTrack.usd
+# 3. drive a camera along it (Cycles, GPU), frames + ground_truth.csv, then encode
+blender -b --factory-startup --python tools/blender/render_drive.py -- \
+    data/scenes/LightingTrack/track.json /tmp/drive
+ffmpeg -framerate 20 -i /tmp/drive/frames/f%05d.jpg -c:v libx264 -pix_fmt yuv420p -crf 18 /tmp/drive/drive.mp4
+```
+```matlab
+% 4. LKA on the rendered drive with the exact camera, then score against the ground truth
+evalin('base','lkaProfile=''baja''; lka_controller_params;'); C = evalin('base','LKA.Vision.Camera');
+run_lka_on_video('/tmp/drive/drive.mp4', Camera=C, Speed=15/3.6, LaneWidth=3.0, TrackProfile='tight', ...
+    MinRadius=12, OutDir='test_res/mobilenet/lighting_track');
+score_lighting_track('test_res/mobilenet/lighting_track', '/tmp/drive/ground_truth.csv', ...
+    'data/scenes/LightingTrack/track.json');
+```
+In Unreal the same scene is scenario `S6_LightingTrack`. MathWorks' Unreal build loads USD
+scenes at run time **only on Windows** ("Run-time import of Universal Scene Description
+files is not supported by Unreal Engine on this operating system"); on Linux use the
+Blender render above.
 
-For complete BibTeX citations, see [`docs/references/references.bib`](docs/references/references.bib).
+## Requirements (short)
+
+MATLAB R2026a or newer with Simulink, Stateflow, Automated Driving, Computer Vision, Image
+Processing, Control System, Model Predictive Control and Deep Learning Toolbox, plus the
+*Deep Learning Toolbox Converter for ONNX Model Format* add-on. The Parallel Computing
+Toolbox is optional and only adds a GPU path. Python 3.12 for the lane node. Details and the
+exact error each missing piece gives: [`requirements/`](requirements/).
+
+## Where to read more
+
+| Topic | File |
+|---|---|
+| Current state, measurements, traps (for the next person / agent) | [`CONTEXT.md`](CONTEXT.md) |
+| Lane detectors, contract, comparison | [`perception/README.md`](perception/README.md) |
+| Live camera test, step by step | [`docs/real_time_guide.md`](docs/real_time_guide.md) |
+| How the LKA works (perception, supervisor, controllers, limits) | [`docs/lka_controller.md`](docs/lka_controller.md) |
+| Simulink model ports and buses | [`models/README.md`](models/README.md) |
+| Vehicle and camera numbers still to measure | [`docs/vehicle_measurements.md`](docs/vehicle_measurements.md) |
+| Open team tasks / next stages | [`docs/team_actions.md`](docs/team_actions.md), [`docs/next_plan.md`](docs/next_plan.md) |
+| Archived detectors and how to bring one back | [`backup_lane_detection/README.md`](backup_lane_detection/README.md) |
+| Learning material | `docs/LKA_Learning_Lab.html`, `docs/LKA_Team_Guide.html` (written before the detector swap) |
+
+## Conventions
+
+- Simulink models are generated: edit `scripts/build_lka_models.m`, never the `.slx`.
+- A behaviour change to the shared pipeline arrives behind a parameter, defaulted off, and is
+  switched on only with a measurement next to it.
+- One active detector at a time. A new model gets its own `perception/<Name>_Approach/`
+  folder, and its numbers go into `perception/README.md` before it becomes the default.
+- Do not add a Signal Processing Toolbox dependency; the competition machine does not have it.
+
+## References
+
+Rajamani, *Vehicle Dynamics and Control* (2012); Snider, *Automatic Steering Methods for
+Autonomous Automobile Path Tracking*, CMU-RI-TR-09-08 (2009); ISO 11270:2014 (LKAS); MAAB
+modelling guidelines. BibTeX: [`docs/references/references.bib`](docs/references/references.bib).

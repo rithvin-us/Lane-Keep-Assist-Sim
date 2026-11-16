@@ -5,11 +5,13 @@
 then open http://127.0.0.1:8050 (MATLAB: start_lka_dashboard). It shows
 
 * the live run published by MATLAB (lka_monitor_publish -> results/monitor/live.json and
-  live.jpg): video tool or Unreal camera bench, phase, progress, annotated camera frame,
-  steering / lane / speed / timing signals;
-* the GPU (nvidia-smi every second: load, memory, temperature, power, clock);
-* finished results: test_res/summary.csv (recorded track videos, with the annotated
-  videos and graphs) and results/vision/lka_vision_kpis.csv (closed-loop camera runs).
+  live.jpg): live camera (run_lka_live + the lane node), recorded video (run_lka_on_video)
+  or the Unreal camera bench; phase, progress, annotated camera frame, steering / lane /
+  speed / latency signals;
+* the computer: CPU load every second (/proc/stat) and, when nvidia-smi exists, the GPU;
+* finished results: every test_res/**/lka_video_results.csv (recorded track videos, with the
+  annotated videos and graphs), every results/live/*/live_frames.csv (live camera sessions)
+  and results/vision/lka_vision_kpis.csv (closed-loop Unreal camera runs).
 
 The server binds to 127.0.0.1 only, answers only requests addressed to 127.0.0.1 / localhost
 (Host header check against DNS rebinding) and serves files only from test_res/, results/ and
@@ -19,6 +21,7 @@ import argparse
 import csv
 import json
 import mimetypes
+import os
 import re
 import shutil
 import subprocess
@@ -59,13 +62,29 @@ def _num(v):
         return None
 
 
+def _cpu_times():
+    try:
+        with open("/proc/stat") as f:
+            v = [int(x) for x in f.readline().split()[1:]]
+        return sum(v), v[3] + (v[4] if len(v) > 4 else 0)      # total, idle + iowait
+    except (OSError, ValueError, IndexError):
+        return None
+
+
 def gpu_poller():
-    """nvidia-smi once per second; keeps the last 300 samples for the charts."""
+    """CPU load and nvidia-smi once per second; keeps the last 300 samples for the charts."""
     exe = shutil.which("nvidia-smi")
+    prev = _cpu_times()
     while True:
         sample, err = None, None
+        cur = _cpu_times()
+        cpu = None
+        if prev and cur and cur[0] > prev[0]:
+            cpu = 100.0 * (1 - (cur[1] - prev[1]) / (cur[0] - prev[0]))
+        prev = cur
         if exe is None:
-            err = "nvidia-smi not found"
+            err = "no NVIDIA GPU (nvidia-smi not found): CPU only"
+            sample = {"t": time.time(), "cpu": cpu, "cores": os.cpu_count()}
         else:
             try:
                 out = subprocess.run(
@@ -78,9 +97,10 @@ def gpu_poller():
                           "util": _num(sample["utilization.gpu"]), "memUsed": _num(sample["memory.used"]),
                           "memTotal": _num(sample["memory.total"]), "temp": _num(sample["temperature.gpu"]),
                           "power": _num(sample["power.draw"]), "clock": _num(sample["clocks.sm"]),
-                          "clockMax": _num(sample["clocks.max.sm"])}
+                          "clockMax": _num(sample["clocks.max.sm"]), "cpu": cpu, "cores": os.cpu_count()}
             except Exception as exc:  # keep polling, report the error
                 err = str(exc)
+                sample = {"t": time.time(), "cpu": cpu, "cores": os.cpu_count()}
         with _gpu_lock:
             _gpu["error"] = err
             if sample:
@@ -97,17 +117,66 @@ def read_csv(path):
         return list(csv.DictReader(f))
 
 
+def _pct(rows, test):
+    return 100.0 * sum(1 for r in rows if test(r)) / len(rows) if rows else None
+
+
+def _median(vals):
+    v = sorted(x for x in vals if x is not None)
+    return v[len(v) // 2] if v else None
+
+
+def _video_summary(csv_path):
+    """One results row from a run_lka_on_video table (test_res/<...>/lka_video_results.csv)."""
+    rows = read_csv(csv_path)
+    if not rows:
+        return None
+    f = lambda r, k: _num(r.get(k))  # noqa: E731
+    t = [f(r, "Time_s") or 0.0 for r in rows]
+    detect = _median([f(r, "Detect_ms") for r in rows])
+    rest = _median([(f(r, "BevOdometry_ms") or 0) + (f(r, "LaneFit_ms") or 0) for r in rows])
+    speeds = [f(r, "Speed_kmh") for r in rows if f(r, "Speed_kmh") is not None]
+    steer = [abs(f(r, "SteerCmd_deg") or 0) for r in rows]
+    return {"Frames": len(rows), "Duration_s": t[-1] - t[0],
+            "BothLines_pct": _pct(rows, lambda r: (f(r, "LeftStrength") or 0) > 0 and (f(r, "RightStrength") or 0) > 0),
+            "AnyLine_pct": _pct(rows, lambda r: (f(r, "LeftStrength") or 0) > 0 or (f(r, "RightStrength") or 0) > 0),
+            "LkaActive_pct": _pct(rows, lambda r: (f(r, "LkaState") or 0) >= 2),
+            "Detect_ms": detect, "Matlab_ms": rest,
+            "MaxSpeed_kmh": max(speeds) if speeds else None, "MaxSteerCmd_deg": max(steer) if steer else None}
+
+
 def results_payload():
     videos = []
-    for row in read_csv(ROOT / "test_res" / "summary.csv"):
-        name = row.get("Video", "")
-        folder = ROOT / "test_res" / name
+    for csv_path in sorted((ROOT / "test_res").rglob("lka_video_results.csv")):
+        folder = csv_path.parent
+        row = _video_summary(csv_path)
+        if row is None:
+            continue
+        rel = folder.relative_to(ROOT / "test_res").as_posix()
+        row["Video"] = rel
         files = {}
         for key, fname in [("video", "lka_video_annotated.mp4"), ("overview", "lka_video_overview.png"),
                            ("path", "lka_video_path.png"), ("csv", "lka_video_results.csv")]:
             if (folder / fname).is_file():
-                files[key] = "/files/test_res/" + name + "/" + fname
+                files[key] = "/files/test_res/" + rel + "/" + fname
         videos.append({"row": row, "files": files})
+    lives = []
+    for csv_path in sorted((ROOT / "results" / "live").glob("*/live_frames.csv"), reverse=True):
+        rows = read_csv(csv_path)
+        if not rows:
+            continue
+        f = lambda r, k: _num(r.get(k))  # noqa: E731
+        rel = csv_path.parent.relative_to(ROOT).as_posix()
+        row = {"Session": csv_path.parent.name, "Frames": len(rows),
+               "Duration_s": f(rows[-1], "Time_s"),
+               "BothLines_pct": _pct(rows, lambda r: (f(r, "LeftOffset_m") or 0) != 0 and (f(r, "RightOffset_m") or 0) != 0),
+               "Node_ms": _median([f(r, "Node_ms") for r in rows]),
+               "Matlab_ms": _median([f(r, "Matlab_ms") for r in rows])}
+        files = {}
+        for key, fname in [("overview", "live_overview.png"), ("csv", "live_frames.csv"), ("replay", "live_results.csv")]:
+            if (csv_path.parent / fname).is_file():
+                files[key] = "/files/" + rel + "/" + fname
+        lives.append({"row": row, "files": files})
     sims = []
     vis = ROOT / "results" / "vision"
     for row in read_csv(vis / "lka_vision_kpis.csv"):
@@ -123,7 +192,7 @@ def results_payload():
         if mp4.is_file():
             files["video"] = "/files/results/vision/" + mp4.name
         sims.append({"row": row, "files": files})
-    return {"videos": videos, "sims": sims}
+    return {"videos": videos, "lives": lives, "sims": sims}
 
 
 class Handler(BaseHTTPRequestHandler):

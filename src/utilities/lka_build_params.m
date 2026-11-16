@@ -221,7 +221,7 @@ function LKA = lka_build_params(profile, vehicle, sensor)
     % ---------------------------------------- Camera lane detector (lka_vision_params.m)
     root = fileparts(fileparts(fileparts(mfilename('fullpath'))));
     LKA.Vision = lka_vision_params(profile);
-    LKA.Vision.DetectorDir = fullfile(root, 'models', 'perception');
+    LKA.Vision.DetectorDir = fullfile(root, 'perception');   % perception/<Approach>/deploy/<Detector>.json
     LKA.Vision.Bench.ScenePath = fullfile(root, 'data', 'scenes', 'LKA', 'LKA.usd');
     LKA.Vision.Ts = LKA.Ts;
 

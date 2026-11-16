@@ -11,7 +11,7 @@ function setupOnce(testCase)
     projectRoot = fileparts(fileparts(fileparts(mfilename('fullpath'))));
     run(fullfile(projectRoot, 'config', 'startup.m'));
     LKA = lka_build_params('baja', evalin('base', 'vehicle'), evalin('base', 'sensor'));
-    V = LKA.Vision; V.Detector = 'classic'; V.UseGpu = false;
+    V = LKA.Vision; V.Detector = 'mobilenet'; V.UseGpu = false;
     testCase.TestData.V = V;
     testCase.TestData.cam = lka_camera_model(V.Camera, V.Bev);
 end

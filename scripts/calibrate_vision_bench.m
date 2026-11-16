@@ -27,7 +27,6 @@ function report = calibrate_vision_bench(options)
     evalin('base', 'lkaProfile = ''baja''; lka_controller_params; create_lka_buses;');
     vehicle = evalin('base', 'vehicle');
     LKA = evalin('base', 'LKA');
-    LKA.Vision.Detector = 'classic';
     LKA.Vision.UseGpu = false;
     LKA.Vision.Bench.VideoFile = '';
     LKA.Vision.Bench.DatasetDir = '';

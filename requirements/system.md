@@ -32,6 +32,20 @@ ffmpeg -v error -i clip.mp4 -vf fps=20 -q:v 2 frames/f%05d.jpg      # decode at 
 ffmpeg -v error -framerate 20 -i annot/a%05d.jpg -c:v libx264 -pix_fmt yuv420p -crf 20 out.mp4
 ```
 
+## Blender (test-track scenes)
+
+Only for rebuilding `data/scenes/LightingTrack/` (`tools/blender/build_lighting_track.py`).
+Blender 4.2 LTS, portable, no root needed:
+
+```bash
+mkdir -p ~/.local/opt && cd ~/.local/opt
+curl -LO https://download.blender.org/release/Blender4.2/blender-4.2.9-linux-x64.tar.xz
+tar xf blender-4.2.9-linux-x64.tar.xz && ln -sf ~/.local/opt/blender-4.2.9-linux-x64/blender ~/.local/bin/blender
+```
+
+The generated USD, its texture and the previews are in git, so running the bench needs no
+Blender.
+
 ## Unreal scene
 
 `data/scenes/LKA/LKA.usd` and its textures are in git (11 MB total). Unreal itself comes with the
@@ -46,11 +60,11 @@ so `Precision/Recall/F1/IoU` come out `NaN` on Unreal datasets. Use the syntheti
 
 | Path | What | Where to get it |
 |---|---|---|
-| `models/perception/team_cnn.onnx` | team UFLDv2 ResNet-18 (TuSimple), > 100 MB | team Drive, see `models/perception/README.md` |
+| `perception/Mobilenet_Approach/.venv/` | Python environment of the lane node | `perception/Mobilenet_Approach/requirements.txt` |
 | `ADAS_2026/` | the 2025 Python stack, read-only reference | `RatheeswarS/ADAS_2026` |
-| `LaneAssist/` | the tsiggi/LaneAssist reference, read-only | `https://github.com/tsiggi/LaneAssist.git`, see `docs/laneassist_comparison.md` |
 | `data/vision_datasets/` | recorded and synthetic frame datasets | regenerate with `run_lka_vision(Dataset=true)` or `make_synthetic_vision_dataset` |
 | `results/monitor/` | live dashboard telemetry | written at run time |
 
-Both reference checkouts are read-only: nothing in the build depends on them, and neither is
-edited.
+Reference checkouts (`ADAS_2026/`, `backup_lane_detection/reference/LaneAssist/`) are
+read-only: nothing in the build depends on them, and neither is edited. The archived
+detectors are described in `backup_lane_detection/README.md`.

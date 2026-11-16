@@ -7,6 +7,7 @@ function scenarios = generate_lka_scenarios(vehicle)
 % Each element has fields
 %   Name, Description  text
 %   Road               ego-lane description (lka_make_lane_road)
+%   Scene              Unreal scene (USD) for the camera bench; '' = data/scenes/LKA/LKA.usd
 %   P                  numeric parameters read by LKA_MIL_TestBench.slx:
 %       V0, VSet, Accel   speed profile v(t) = min(V0 + Accel*t, VSet) [m/s, m/s^2]
 %       StopTime          [s]
@@ -26,6 +27,9 @@ function scenarios = generate_lka_scenarios(vehicle)
 %                    (short both-sides loss in a curve, 3 s one-sided loss, and a
 %                    1.5 s total loss that exceeds the coast limit -> take-over request)
 %   S5 InitialOffset S1 starting 0.8 m left of the centre with 4 deg heading error
+%   S6 LightingTrack Blender-built track (lka_lighting_track): 30 / 60 deg turns, S-bend,
+%                    sun, glare and shadow patches; 3.0 m lane at 15 km/h. Camera bench
+%                    scene data/scenes/LightingTrack/LightingTrack.usd
 
     arguments
         vehicle (1,1) struct
@@ -37,7 +41,7 @@ function scenarios = generate_lka_scenarios(vehicle)
     lkaRoad.name = 'aBaja LKA track (LKA\_IPG.xodr, lane 1)';
 
     vSet = 30 / 3.6;
-    scenarios = struct('Name', {}, 'Description', {}, 'Road', {}, 'P', {});
+    scenarios = struct('Name', {}, 'Description', {}, 'Road', {}, 'P', {}, 'Scene', {});
 
     scenarios(end+1) = makeScenario('S1_Nominal', ...
         'Official LKA track, 0 to 30 km/h at 4 m/s^2, nominal detector', ...
@@ -62,6 +66,12 @@ function scenarios = generate_lka_scenarios(vehicle)
     scenarios(end+1) = makeScenario('S5_InitialOffset', ...
         'Official track, start 0.8 m left of centre with 4 deg heading error', ...
         lkaRoad, 2.816, 0.8, deg2rad(4), vSet, 4, 60, 1, [], [-1 -1 0], vehicle);
+
+    lit = lka_lighting_track();
+    scenarios(end+1) = makeScenario('S6_LightingTrack', ...
+        'Blender track: 30 / 60 deg turns, S-bend, sun / glare / shadow patches, 15 km/h', ...
+        lit, 3, 0, 0, 15 / 3.6, 2, 52, 1, [], [-1 -1 0], vehicle);
+    scenarios(end).Scene = fullfile(fileparts(here), 'scenes', 'LightingTrack', 'LightingTrack.usd');
 end
 
 function sc = makeScenario(name, desc, road, s0, offset0, dpsi0, vSet, accel, stopTime, noiseScale, latency, drop, vehicle)
@@ -87,7 +97,7 @@ function sc = makeScenario(name, desc, road, s0, offset0, dpsi0, vSet, accel, st
         P.LatencySteps = latency;
     end
     P.Dropouts = drop;
-    sc = struct('Name', name, 'Description', desc, 'Road', road, 'P', P);
+    sc = struct('Name', name, 'Description', desc, 'Road', road, 'P', P, 'Scene', '');
 end
 
 function road = tightTrack()

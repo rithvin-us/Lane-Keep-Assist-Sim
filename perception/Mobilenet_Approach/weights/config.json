@@ -1,0 +1,19 @@
+{
+  "data": "dataset",
+  "name": "run1",
+  "width": 480,
+  "height": 288,
+  "epochs": 80,
+  "batch": 8,
+  "lr": 0.001,
+  "encoder": "mobilenet_v2",
+  "workers": 2,
+  "no_pretrained": false,
+  "resume": null,
+  "seed": 0,
+  "classes": [
+    "background",
+    "road",
+    "lane"
+  ]
+}

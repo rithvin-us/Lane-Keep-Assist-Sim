@@ -6,84 +6,90 @@
 <title>LKA Monitor</title>
 <style>
   :root {
-    --bg: #f4f6f8; --panel: #ffffff; --ink: #18202a; --muted: #5b6776; --line: #dde3ea;
+    --bg: #f4f6f8; --panel: #ffffff; --ink: #18202a; --muted: #5b6776; --line: #dde3ea; --grid: #edf1f5;
     --accent: #0b6bcb; --ok: #138a4a; --warn: #b7791f; --bad: #c53030; --track: #e9eef3;
-    --c1: #0b6bcb; --c2: #d6336c; --c3: #2f9e44; --c4: #e8590c; --c5: #7048e8;
+    --c1: #0b6bcb; --c2: #d6336c; --c3: #2f9e44; --c4: #e8590c; --c5: #7048e8; --c6: #495057;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --bg: #0f141a; --panel: #171e26; --ink: #e6edf3; --muted: #93a1b0; --line: #26313d;
+      --bg: #0f141a; --panel: #171e26; --ink: #e6edf3; --muted: #93a1b0; --line: #26313d; --grid: #1e2731;
       --accent: #4dabf7; --ok: #40c057; --warn: #fab005; --bad: #ff6b6b; --track: #222c37;
-      --c1: #4dabf7; --c2: #f06595; --c3: #69db7c; --c4: #ff922b; --c5: #9775fa;
+      --c1: #4dabf7; --c2: #f06595; --c3: #69db7c; --c4: #ff922b; --c5: #9775fa; --c6: #ced4da;
     }
   }
   :root[data-theme="dark"] {
-    --bg: #0f141a; --panel: #171e26; --ink: #e6edf3; --muted: #93a1b0; --line: #26313d;
+    --bg: #0f141a; --panel: #171e26; --ink: #e6edf3; --muted: #93a1b0; --line: #26313d; --grid: #1e2731;
     --accent: #4dabf7; --ok: #40c057; --warn: #fab005; --bad: #ff6b6b; --track: #222c37;
-    --c1: #4dabf7; --c2: #f06595; --c3: #69db7c; --c4: #ff922b; --c5: #9775fa;
+    --c1: #4dabf7; --c2: #f06595; --c3: #69db7c; --c4: #ff922b; --c5: #9775fa; --c6: #ced4da;
   }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--bg); color: var(--ink);
-         font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+         font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
   header { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between;
            padding: 14px 20px; border-bottom: 1px solid var(--line); background: var(--panel); }
-  header h1 { margin: 0; font-size: 18px; letter-spacing: .2px; }
+  header h1 { margin: 0; font-size: 19px; }
   .sub { color: var(--muted); font-size: 13px; }
   .badge { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 600;
-           background: var(--track); color: var(--muted); }
+           background: var(--track); color: var(--muted); vertical-align: 2px; }
   .badge.ok { background: color-mix(in srgb, var(--ok) 18%, transparent); color: var(--ok); }
   .badge.warn { background: color-mix(in srgb, var(--warn) 20%, transparent); color: var(--warn); }
   .badge.bad { background: color-mix(in srgb, var(--bad) 18%, transparent); color: var(--bad); }
+  nav { display: flex; gap: 6px; flex-wrap: wrap; }
   nav button { font: inherit; border: 1px solid var(--line); background: transparent; color: var(--ink);
                padding: 6px 12px; border-radius: 8px; cursor: pointer; }
   nav button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
-  main { padding: 16px 20px 28px; max-width: 1500px; margin: 0 auto; }
+  main { padding: 16px 20px 28px; max-width: 1600px; margin: 0 auto; }
   .grid { display: grid; gap: 14px; grid-template-columns: repeat(12, 1fr); }
   .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; min-width: 0; }
-  .card h2 { margin: 0 0 10px; font-size: 13px; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); font-weight: 600; }
+  .card h2 { margin: 0 0 10px; font-size: 15px; font-weight: 650; }
+  .card h2 .sub { font-weight: 400; margin-left: 6px; }
   .span-7 { grid-column: span 7; } .span-5 { grid-column: span 5; } .span-6 { grid-column: span 6; }
   .span-12 { grid-column: span 12; } .span-4 { grid-column: span 4; } .span-8 { grid-column: span 8; }
-  @media (max-width: 1000px) { .span-7, .span-5, .span-6, .span-4, .span-8 { grid-column: span 12; } }
+  @media (max-width: 1100px) { .span-7, .span-5, .span-6, .span-4, .span-8 { grid-column: span 12; } }
   .frame { width: 100%; aspect-ratio: 16 / 9; background: var(--track); border-radius: 8px; object-fit: contain; display: block; }
-  .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 10px; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
   .tile { background: var(--track); border-radius: 10px; padding: 10px 12px; }
-  .tile .k { color: var(--muted); font-size: 12px; }
-  .tile .v { font-size: 22px; font-weight: 650; font-variant-numeric: tabular-nums; margin-top: 2px; }
-  .tile .u { font-size: 12px; color: var(--muted); margin-left: 3px; font-weight: 500; }
+  .tile .k { color: var(--muted); font-size: 12.5px; }
+  .tile .v { font-size: 24px; font-weight: 650; font-variant-numeric: tabular-nums; margin-top: 2px; }
+  .tile .u { font-size: 12.5px; color: var(--muted); margin-left: 3px; font-weight: 500; }
+  .tile.good .v { color: var(--ok); } .tile.slow .v { color: var(--bad); }
   .bar { height: 8px; background: var(--track); border-radius: 99px; overflow: hidden; margin-top: 10px; }
   .bar > div { height: 100%; background: var(--accent); width: 0; transition: width .3s; }
-  .stack { display: flex; height: 12px; border-radius: 99px; overflow: hidden; background: var(--track); margin: 8px 0 4px; }
+  .stack { display: flex; height: 14px; border-radius: 99px; overflow: hidden; background: var(--track); margin: 8px 0 6px; }
   .stack span { display: block; height: 100%; }
-  .legend { display: flex; flex-wrap: wrap; gap: 10px; font-size: 12px; color: var(--muted); }
-  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 4px; vertical-align: -1px; }
-  canvas.chart { width: 100%; height: 170px; display: block; }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 13px; color: var(--muted); }
+  .legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+  .chartbox { position: relative; }
+  canvas.chart { width: 100%; height: 230px; display: block; cursor: crosshair; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
   th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
-  th { color: var(--muted); font-weight: 600; font-size: 12px; }
+  th { color: var(--muted); font-weight: 600; font-size: 12.5px; }
   td.num { font-variant-numeric: tabular-nums; text-align: right; }
   .scroll { overflow-x: auto; }
   a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
   .links a { margin-right: 10px; }
-  .empty { color: var(--muted); padding: 24px; text-align: center; }
+  .empty { color: var(--muted); padding: 20px; text-align: center; }
   .hidden { display: none; }
+  .row { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
   dialog { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); color: var(--ink);
-           max-width: min(1100px, 96vw); width: 96vw; padding: 12px; }
+           max-width: min(1200px, 96vw); width: 96vw; padding: 12px; }
   dialog::backdrop { background: rgba(0,0,0,.55); }
   dialog video, dialog img { width: 100%; border-radius: 8px; display: block; }
   dialog .top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; gap: 8px; }
-  .themebtn { font: inherit; border: 1px solid var(--line); background: transparent; color: var(--ink); padding: 6px 10px; border-radius: 8px; cursor: pointer; }
+  .btn { font: inherit; border: 1px solid var(--line); background: transparent; color: var(--ink); padding: 5px 10px; border-radius: 8px; cursor: pointer; }
+  .btn.on { background: var(--track); }
 </style>
 </head>
 <body>
 <header>
   <div>
     <h1>LKA Monitor <span id="phase" class="badge">connecting</span></h1>
-    <div class="sub" id="runline">Waiting for MATLAB (run_lka_on_video / run_lka_vision publish here).</div>
+    <div class="sub" id="runline">Waiting for MATLAB: run_lka_live (camera), run_lka_on_video (recorded clip) or run_lka_vision (Unreal) publish here.</div>
   </div>
   <nav>
     <button id="tab-live" class="on">Live</button>
     <button id="tab-results">Results</button>
-    <button class="themebtn" id="theme" title="Toggle light / dark">◐</button>
+    <button class="btn" id="theme" title="Toggle light / dark">◐ theme</button>
   </nav>
 </header>
 
@@ -91,7 +97,7 @@
 <section id="view-live">
   <div class="grid">
     <div class="card span-7">
-      <h2>Camera (annotated)</h2>
+      <h2>Camera <span class="sub">lane fit, LKA path and bird's-eye inset</span></h2>
       <img id="frame" class="frame" alt="Latest annotated camera frame">
       <div class="bar"><div id="progress"></div></div>
       <div class="sub" id="progtext" style="margin-top:6px"></div>
@@ -100,41 +106,44 @@
       <h2>Vehicle and LKA</h2>
       <div class="tiles">
         <div class="tile"><div class="k">LKA state</div><div class="v" id="t-state">–</div></div>
-        <div class="tile"><div class="k">Speed</div><div class="v"><span id="t-speed">–</span><span class="u">km/h</span></div></div>
+        <div class="tile"><div class="k">Lines found</div><div class="v" id="t-lines">–</div></div>
         <div class="tile"><div class="k">Steer command</div><div class="v"><span id="t-steer">–</span><span class="u">deg</span></div></div>
         <div class="tile"><div class="k">Turning radius</div><div class="v"><span id="t-radius">–</span><span class="u">m</span></div></div>
-        <div class="tile"><div class="k">Lane centre</div><div class="v"><span id="t-centre">–</span><span class="u">m</span></div></div>
+        <div class="tile"><div class="k">Lane centre offset</div><div class="v"><span id="t-centre">–</span><span class="u">m</span></div></div>
         <div class="tile"><div class="k">Heading error</div><div class="v"><span id="t-heading">–</span><span class="u">deg</span></div></div>
-        <div class="tile"><div class="k">Lines found</div><div class="v" id="t-lines">–</div></div>
+        <div class="tile"><div class="k">Speed</div><div class="v"><span id="t-speed">–</span><span class="u">km/h</span></div></div>
         <div class="tile"><div class="k">Yaw rate</div><div class="v"><span id="t-yaw">–</span><span class="u">deg/s</span></div></div>
+        <div class="tile" id="tile-rate"><div class="k">Frame rate</div><div class="v"><span id="t-rate">–</span><span class="u">Hz</span></div></div>
+        <div class="tile" id="tile-lat"><div class="k">Processing per frame</div><div class="v"><span id="t-lat">–</span><span class="u">ms</span></div></div>
+        <div class="tile" id="tile-age"><div class="k">Camera → command</div><div class="v"><span id="t-age">–</span><span class="u">ms</span></div></div>
       </div>
-      <h2 style="margin-top:16px">Time per frame</h2>
+      <h2 style="margin-top:16px">Where the time goes <span class="sub">latest frame</span></h2>
       <div class="stack" id="stack"></div>
-      <div class="legend"><span><i style="background:var(--c1)"></i>detector</span><span><i style="background:var(--c4)"></i>bird's-eye + odometry</span><span><i style="background:var(--c3)"></i>lane fit</span><span id="mstotal"></span></div>
+      <div class="legend"><span><i style="background:var(--c1)"></i>lane detector</span><span><i style="background:var(--c4)"></i>bird's-eye (+ odometry)</span><span><i style="background:var(--c3)"></i>lane fit + controller</span><span id="mstotal"></span></div>
     </div>
 
-    <div class="card span-6"><h2>Steering command [deg, + left]</h2><canvas class="chart" id="c-steer"></canvas></div>
-    <div class="card span-6"><h2>Lane lines and centre [m, + left]</h2><canvas class="chart" id="c-lane"></canvas>
-      <div class="legend"><span><i style="background:var(--c3)"></i>left line</span><span><i style="background:var(--c1)"></i>right line</span><span><i style="background:var(--c4)"></i>lane centre</span></div></div>
-    <div class="card span-6"><h2>Speed [km/h]</h2><canvas class="chart" id="c-speed"></canvas></div>
-    <div class="card span-6"><h2>Pipeline time [ms per frame]</h2><canvas class="chart" id="c-ms"></canvas>
-      <div class="legend"><span><i style="background:var(--c1)"></i>detector</span><span><i style="background:var(--c4)"></i>bird's-eye + odometry</span><span><i style="background:var(--c3)"></i>lane fit</span></div></div>
+    <div class="card span-12 row" style="padding:10px 14px">
+      <span class="sub">Charts show</span>
+      <span><button class="btn on" id="win-30">last 30 s</button> <button class="btn" id="win-120">last 2 min</button> <button class="btn" id="win-all">whole run</button></span>
+      <span class="sub">Hover a chart to read the values.</span>
+    </div>
+    <div class="card span-6"><h2>Steering command <span class="sub">road-wheel angle, + left</span></h2><div class="chartbox"><canvas class="chart" id="c-steer"></canvas></div></div>
+    <div class="card span-6"><h2>Lane lines and lane centre <span class="sub">lateral position at the rear axle, + left</span></h2><div class="chartbox"><canvas class="chart" id="c-lane"></canvas></div></div>
+    <div class="card span-6"><h2>Latency <span class="sub">per frame; red line = 50 ms budget of the 20 Hz loop</span></h2><div class="chartbox"><canvas class="chart" id="c-ms"></canvas></div></div>
+    <div class="card span-6"><h2>Speed</h2><div class="chartbox"><canvas class="chart" id="c-speed"></canvas></div></div>
 
     <div class="card span-12">
-      <h2>GPU <span class="sub" id="gpuname"></span></h2>
+      <h2>Computer <span class="sub" id="gpuname"></span></h2>
       <div class="grid">
         <div class="span-4">
           <div class="tiles">
-            <div class="tile"><div class="k">Load</div><div class="v"><span id="g-util">–</span><span class="u">%</span></div></div>
-            <div class="tile"><div class="k">Memory</div><div class="v"><span id="g-mem">–</span><span class="u" id="g-memt"></span></div></div>
-            <div class="tile"><div class="k">Temperature</div><div class="v"><span id="g-temp">–</span><span class="u">°C</span></div></div>
-            <div class="tile"><div class="k">Power</div><div class="v"><span id="g-pow">–</span><span class="u">W</span></div></div>
-            <div class="tile"><div class="k">SM clock</div><div class="v"><span id="g-clk">–</span><span class="u">MHz</span></div></div>
-            <div class="tile"><div class="k">P-state</div><div class="v" id="g-ps">–</div></div>
+            <div class="tile"><div class="k">CPU load</div><div class="v"><span id="g-cpu">–</span><span class="u">%</span></div></div>
+            <div class="tile gpu"><div class="k">GPU load</div><div class="v"><span id="g-util">–</span><span class="u">%</span></div></div>
+            <div class="tile gpu"><div class="k">GPU memory</div><div class="v"><span id="g-mem">–</span><span class="u" id="g-memt"></span></div></div>
+            <div class="tile gpu"><div class="k">GPU temperature</div><div class="v"><span id="g-temp">–</span><span class="u">°C</span></div></div>
           </div>
         </div>
-        <div class="span-8"><canvas class="chart" id="c-gpu"></canvas>
-          <div class="legend"><span><i style="background:var(--c1)"></i>load %</span><span><i style="background:var(--c2)"></i>memory %</span><span><i style="background:var(--c5)"></i>clock % of max</span></div></div>
+        <div class="span-8"><div class="chartbox"><canvas class="chart" id="c-gpu"></canvas></div></div>
       </div>
     </div>
   </div>
@@ -143,25 +152,32 @@
 <section id="view-results" class="hidden">
   <div class="grid">
     <div class="card span-12">
-      <h2>Recorded track videos (test_res/summary.csv)</h2>
+      <h2>Live camera sessions <span class="sub">results/live/*</span></h2>
+      <div class="scroll"><table id="tbl-lives"></table></div>
+    </div>
+    <div class="card span-12">
+      <h2>Recorded track videos <span class="sub">test_res/**/lka_video_results.csv</span></h2>
       <div class="scroll"><table id="tbl-videos"></table></div>
     </div>
     <div class="card span-12">
-      <h2>Closed-loop camera runs, Unreal (results/vision/lka_vision_kpis.csv)</h2>
+      <h2>Closed-loop camera runs, Unreal <span class="sub">results/vision/lka_vision_kpis.csv</span></h2>
       <div class="scroll"><table id="tbl-sims"></table></div>
     </div>
   </div>
 </section>
 </main>
 
-<dialog id="viewer"><div class="top"><strong id="viewer-title"></strong><button class="themebtn" id="viewer-close">Close</button></div><div id="viewer-body"></div></dialog>
+<dialog id="viewer"><div class="top"><strong id="viewer-title"></strong><button class="btn" id="viewer-close">Close</button></div><div id="viewer-body"></div></dialog>
 
 <script>
 const $ = (id) => document.getElementById(id);
 const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 const STATES = ['OFF', 'STANDBY', 'ACTIVE', 'DEGRADED', 'TAKEOVER'];
+const KIND = { live: 'Live camera', video: 'Recorded video', sim: 'Unreal closed loop' };
+const BUDGET_MS = 50;
 const fmt = (v, d = 1) => (v === null || v === undefined || Number.isNaN(v)) ? '–' : Number(v).toFixed(d);
 const arr = (v) => v === undefined || v === null ? [] : (Array.isArray(v) ? v : [v]);
+let windowS = 30;
 
 try { const t = localStorage.getItem('lka-theme'); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
 $('theme').onclick = () => {
@@ -171,6 +187,9 @@ $('theme').onclick = () => {
   try { localStorage.setItem('lka-theme', document.documentElement.dataset.theme); } catch (e) {}
   redraw();
 };
+for (const [id, w] of [['win-30', 30], ['win-120', 120], ['win-all', Infinity]]) {
+  $(id).onclick = () => { windowS = w; for (const b of ['win-30', 'win-120', 'win-all']) $(b).classList.toggle('on', b === id); redraw(); };
+}
 
 function tab(name) {
   for (const n of ['live', 'results']) {
@@ -184,43 +203,112 @@ $('tab-live').onclick = () => tab('live');
 $('tab-results').onclick = () => tab('results');
 
 // ---------------------------------------------------------------- charts
+// chart(canvas, series, opts): series = [{x, y, color, label, mask?, width?, dash?}]
+// opts: unit (y-axis title), ymin / ymax, sym (symmetric about 0), minSpan, lines [{y, label, color}],
+//       xLabel ('s'), window (seconds shown, from the newest x), digits
+const charts = new Map();
+function niceStep(span, n) {
+  const raw = span / n, p = Math.pow(10, Math.floor(Math.log10(raw))), m = raw / p;
+  return (m < 1.5 ? 1 : m < 3 ? 2 : m < 7 ? 5 : 10) * p;
+}
 function chart(canvas, series, opts = {}) {
+  charts.set(canvas, { series, opts });
+  draw(canvas);
+}
+function draw(canvas, hoverX) {
+  const st = charts.get(canvas); if (!st) return;
+  let { series, opts } = st;
   const dpr = window.devicePixelRatio || 1;
   const w = canvas.clientWidth, h = canvas.clientHeight;
   if (!w || !h) return;
   canvas.width = w * dpr; canvas.height = h * dpr;
   const g = canvas.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, h);
-  const L = 44, R = 8, T = 8, B = 22, pw = w - L - R, ph = h - T - B;
+  const L = 56, R = 12, T = 30, B = 30, pw = w - L - R, ph = h - T - B;
+  g.font = '12px system-ui, sans-serif';
+  // window: keep the newest `window` seconds
+  let xmax = -Infinity;
+  for (const s of series) for (const x of s.x) if (Number.isFinite(x) && x > xmax) xmax = x;
+  const win = opts.window ?? Infinity, xlo = Number.isFinite(win) ? xmax - win : -Infinity;
+  series = series.map(s => { const keep = s.x.map(x => x >= xlo);
+    return { ...s, x: s.x.filter((_, i) => keep[i]), y: s.y.filter((_, i) => keep[i]), mask: s.mask && s.mask.filter((_, i) => keep[i]) }; });
   let xs = [], ys = [];
-  for (const s of series) for (let i = 0; i < s.y.length; i++) if (Number.isFinite(s.y[i]) && Number.isFinite(s.x[i])) { xs.push(s.x[i]); ys.push(s.y[i]); }
-  g.font = '11px system-ui, sans-serif'; g.fillStyle = css('--muted');
-  if (!xs.length) { g.fillText('no data yet', L + 8, T + 18); return; }
-  let x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = opts.ymin ?? Math.min(...ys), y1 = opts.ymax ?? Math.max(...ys);
+  for (const s of series) for (let i = 0; i < s.y.length; i++) if (Number.isFinite(s.y[i]) && Number.isFinite(s.x[i]) && (!s.mask || s.mask[i])) { xs.push(s.x[i]); ys.push(s.y[i]); }
+  // legend (top, inside the card)
+  let lx = L;
+  for (const s of series) if (s.label) {
+    g.fillStyle = css(s.color); g.fillRect(lx, 9, 14, 4);
+    g.fillStyle = css('--ink'); g.fillText(s.label, lx + 19, 15); lx += 30 + g.measureText(s.label).width;
+  }
+  for (const ln of opts.lines || []) if (ln.label) {
+    g.strokeStyle = css(ln.color || '--bad'); g.setLineDash([5, 4]); g.beginPath(); g.moveTo(lx, 11); g.lineTo(lx + 14, 11); g.stroke(); g.setLineDash([]);
+    g.fillStyle = css('--ink'); g.fillText(ln.label, lx + 19, 15); lx += 30 + g.measureText(ln.label).width;
+  }
+  g.fillStyle = css('--muted');
+  if (!xs.length) { g.fillText('no data yet', L + 8, T + 24); return; }
+  let x0 = Math.min(...xs), x1 = Math.max(...xs);
+  let y0 = opts.ymin ?? Math.min(...ys), y1 = opts.ymax ?? Math.max(...ys);
+  for (const ln of opts.lines || []) { if (opts.ymax === undefined) y1 = Math.max(y1, ln.y * 1.1); }
   if (opts.sym) { const m = Math.max(Math.abs(y0), Math.abs(y1), opts.minSpan || 0.1); y0 = -m; y1 = m; }
   if (y1 - y0 < 1e-9) { y0 -= 1; y1 += 1; }
-  const pad = (y1 - y0) * 0.08; if (opts.ymin === undefined) y0 -= pad; if (opts.ymax === undefined) y1 += pad;
+  const pad = (y1 - y0) * 0.06; if (opts.ymin === undefined && !opts.sym) y0 -= pad; if (opts.ymax === undefined) y1 += pad;
+  if (Number.isFinite(win) && x1 - x0 < win) x0 = Math.min(x0, x1 - win) ;
   if (x1 - x0 < 1e-9) x1 = x0 + 1;
   const X = (x) => L + (x - x0) / (x1 - x0) * pw, Y = (y) => T + (1 - (y - y0) / (y1 - y0)) * ph;
-  g.strokeStyle = css('--line'); g.lineWidth = 1;
-  for (let i = 0; i <= 4; i++) {
-    const v = y0 + (y1 - y0) * i / 4, yy = Y(v);
-    g.beginPath(); g.moveTo(L, yy); g.lineTo(w - R, yy); g.stroke();
-    g.fillText(Math.abs(v) >= 100 ? v.toFixed(0) : v.toFixed(Math.abs(y1 - y0) < 2 ? 2 : 1), 4, yy + 4);
+  // grid + y ticks
+  const ys_ = niceStep(y1 - y0, 4), digits = opts.digits ?? (ys_ < 0.1 ? 2 : ys_ < 1 ? 1 : 0);
+  g.strokeStyle = css('--grid'); g.lineWidth = 1; g.fillStyle = css('--muted');
+  for (let v = Math.ceil(y0 / ys_) * ys_; v <= y1 + 1e-9; v += ys_) {
+    const yy = Y(v); g.beginPath(); g.moveTo(L, yy); g.lineTo(w - R, yy); g.stroke();
+    const t = v.toFixed(digits); g.fillText(t, L - 6 - g.measureText(t).width, yy + 4);
   }
   if (y0 < 0 && y1 > 0) { g.strokeStyle = css('--muted'); g.beginPath(); g.moveTo(L, Y(0)); g.lineTo(w - R, Y(0)); g.stroke(); }
-  g.fillStyle = css('--muted'); g.fillText(x0.toFixed(1) + ' s', L, h - 6); const lbl = x1.toFixed(1) + ' s'; g.fillText(lbl, w - R - g.measureText(lbl).width, h - 6);
+  // x ticks (time)
+  const xs_ = niceStep(x1 - x0, Math.max(3, Math.floor(pw / 90)));
+  g.fillStyle = css('--muted');
+  for (let v = Math.ceil(x0 / xs_) * xs_; v <= x1 + 1e-9; v += xs_) {
+    const xx = X(v); g.strokeStyle = css('--grid'); g.beginPath(); g.moveTo(xx, T); g.lineTo(xx, T + ph); g.stroke();
+    const t = v.toFixed(xs_ < 1 ? 1 : 0) + ' s'; g.fillText(t, xx - g.measureText(t).width / 2, h - 10);
+  }
+  // y-axis title
+  if (opts.unit) { g.save(); g.translate(13, T + ph / 2); g.rotate(-Math.PI / 2); g.fillStyle = css('--muted');
+    g.fillText(opts.unit, -g.measureText(opts.unit).width / 2, 0); g.restore(); }
+  // reference lines
+  for (const ln of opts.lines || []) { if (ln.y < y0 || ln.y > y1) continue;
+    g.strokeStyle = css(ln.color || '--bad'); g.lineWidth = 1.5; g.setLineDash([6, 4]); g.beginPath(); g.moveTo(L, Y(ln.y)); g.lineTo(w - R, Y(ln.y)); g.stroke(); g.setLineDash([]); }
+  // data
   for (const s of series) {
-    g.strokeStyle = css(s.color); g.lineWidth = s.width || 1.6; g.beginPath(); let pen = false;
+    g.strokeStyle = css(s.color); g.lineWidth = s.width || 2; if (s.dash) g.setLineDash(s.dash);
+    g.beginPath(); let pen = false;
     for (let i = 0; i < s.y.length; i++) {
       const ok = Number.isFinite(s.y[i]) && (!s.mask || s.mask[i]);
       if (!ok) { pen = false; continue; }
       const px = X(s.x[i]), py = Y(Math.max(y0, Math.min(y1, s.y[i])));
       if (!pen) { g.moveTo(px, py); pen = true; } else g.lineTo(px, py);
     }
-    g.stroke();
+    g.stroke(); g.setLineDash([]);
   }
-  if (opts.limit) { g.strokeStyle = css('--bad'); g.setLineDash([5, 4]); g.beginPath(); g.moveTo(L, Y(opts.limit)); g.lineTo(w - R, Y(opts.limit)); g.stroke(); g.setLineDash([]); }
+  // hover readout
+  if (hoverX !== undefined && hoverX >= L && hoverX <= w - R) {
+    const xv = x0 + (hoverX - L) / pw * (x1 - x0);
+    g.strokeStyle = css('--muted'); g.lineWidth = 1; g.beginPath(); g.moveTo(hoverX, T); g.lineTo(hoverX, T + ph); g.stroke();
+    const lines = [`t = ${xv.toFixed(2)} s`];
+    for (const s of series) {
+      let best = -1, bd = Infinity;
+      for (let i = 0; i < s.x.length; i++) { const d = Math.abs(s.x[i] - xv); if (d < bd) { bd = d; best = i; } }
+      if (best >= 0) { const ok = Number.isFinite(s.y[best]) && (!s.mask || s.mask[best]);
+        lines.push(`${s.label || ''}: ${ok ? s.y[best].toFixed(opts.digits ?? 2) : 'not found'}`);
+        if (ok) { g.fillStyle = css(s.color); g.beginPath(); g.arc(X(s.x[best]), Y(Math.max(y0, Math.min(y1, s.y[best]))), 3.5, 0, 7); g.fill(); } }
+    }
+    const bw = Math.max(...lines.map(t => g.measureText(t).width)) + 16, bh = lines.length * 16 + 8;
+    const bx = hoverX + bw + 10 > w ? hoverX - bw - 10 : hoverX + 10;
+    g.fillStyle = css('--panel'); g.strokeStyle = css('--line'); g.fillRect(bx, T + 4, bw, bh); g.strokeRect(bx, T + 4, bw, bh);
+    g.fillStyle = css('--ink'); lines.forEach((t, i) => g.fillText(t, bx + 8, T + 20 + 16 * i));
+  }
 }
+document.querySelectorAll('canvas.chart').forEach(c => {
+  c.addEventListener('mousemove', (e) => draw(c, e.offsetX));
+  c.addEventListener('mouseleave', () => draw(c));
+});
 
 // ---------------------------------------------------------------- live
 let live = null, gpu = null, frameStamp = 0;
@@ -228,7 +316,12 @@ async function pollLive() {
   try {
     const r = await fetch('/api/live', { cache: 'no-store' }); live = await r.json();
     renderLive();
-  } catch (e) { $('phase').textContent = 'server offline'; $('phase').className = 'badge bad'; }
+  } catch (e) { $('phase').textContent = 'dashboard server offline'; $('phase').className = 'badge bad'; }
+}
+function rateOf(t) {
+  if (t.length < 3) return null;
+  const n = Math.min(40, t.length - 1), dt = t[t.length - 1] - t[t.length - 1 - n];
+  return dt > 0 ? n / dt : null;
 }
 function renderLive() {
   const run = live.Run || {}, lat = live.Latest || {}, S = live.Series || {};
@@ -237,83 +330,104 @@ function renderLive() {
   $('phase').textContent = ph === 'done' ? 'done' : (stale ? ph + ' (idle)' : ph);
   $('phase').className = 'badge ' + (ph === 'done' ? 'ok' : (stale ? '' : 'warn'));
   if (run.Name) {
-    $('runline').textContent = `${run.Kind === 'sim' ? 'Unreal closed loop' : 'Recorded video'} · ${run.Name} · ${run.Detector || ''} · ` +
+    $('runline').textContent = `${KIND[run.Kind] || run.Kind} · ${run.Name} · detector ${run.Detector || ''} · ` +
       `${run.Gpu ? 'GPU' : 'CPU'} · started ${run.Started || ''}` + (run.Finished ? ` · finished ${run.Finished}` : '') +
       (live.Age !== null ? ` · updated ${fmt(live.Age, 0)} s ago` : '');
   }
   const frames = lat.Frames || run.Frames || 0, k = lat.Frame || 0;
-  $('progress').style.width = frames ? Math.min(100, 100 * k / frames) + '%' : '0';
-  $('progtext').textContent = frames ? `frame ${k} of ${frames}` + (lat.Time !== undefined ? ` · t = ${fmt(lat.Time)} s` : '') : '';
-  if (live.FrameAvailable && !stale || frameStamp === 0) { frameStamp = Date.now(); $('frame').src = '/api/frame?t=' + frameStamp; }
+  $('progress').style.width = frames ? Math.min(100, 100 * k / frames) + '%' : (run.Kind === 'live' && !stale ? '100%' : '0');
+  $('progtext').textContent = frames ? `frame ${k} of ${frames}` + (lat.Time !== undefined ? ` · t = ${fmt(lat.Time)} s` : '')
+    : (k ? `frame ${k}` + (lat.Time !== undefined ? ` · t = ${fmt(lat.Time)} s` : '') : '');
+  if ((live.FrameAvailable && !stale) || frameStamp === 0) { frameStamp = Date.now(); $('frame').src = '/api/frame?t=' + frameStamp; }
   const st = lat.State;
   $('t-state').textContent = st === undefined ? '–' : (STATES[Math.round(st)] || st);
   $('t-speed').textContent = fmt(lat.Speed); $('t-steer').textContent = fmt(lat.Steer);
-  $('t-radius').textContent = lat.Radius === undefined ? '–' : (Math.abs(lat.Radius) >= 999 ? '∞' : fmt(lat.Radius, 0));
+  $('t-radius').textContent = lat.Radius === undefined ? '–' : (Math.abs(lat.Radius) >= 999 ? 'straight' : fmt(lat.Radius, 0));
   $('t-centre').textContent = fmt(lat.Centre, 2); $('t-heading').textContent = fmt(lat.Heading);
   $('t-yaw').textContent = fmt(lat.YawRate);
   $('t-lines').textContent = lat.LeftOk === undefined ? '–' : (lat.LeftOk ? 'L' : '–') + ' ' + (lat.RightOk ? 'R' : '–');
   const d = lat.DetectMs || 0, wv = lat.WarpMs || 0, f = lat.FitMs || 0, tot = d + wv + f;
+  const rate = rateOf(arr(S.Time));
+  $('t-rate').textContent = fmt(rate, 1);
+  $('tile-rate').className = 'tile ' + (rate === null ? '' : rate >= 18 ? 'good' : 'slow');
+  $('t-lat').textContent = tot ? fmt(tot, 0) : '–';
+  $('tile-lat').className = 'tile ' + (!tot ? '' : tot <= BUDGET_MS ? 'good' : 'slow');
+  $('t-age').textContent = fmt(lat.AgeMs, 0);
+  $('tile-age').className = 'tile ' + (lat.AgeMs === undefined ? '' : lat.AgeMs <= 2 * BUDGET_MS ? 'good' : 'slow');
   $('stack').innerHTML = tot ? `<span style="width:${100*d/tot}%;background:var(--c1)"></span><span style="width:${100*wv/tot}%;background:var(--c4)"></span><span style="width:${100*f/tot}%;background:var(--c3)"></span>` : '';
-  $('mstotal').textContent = tot ? `total ${fmt(tot, 0)} ms → ${fmt(1000 / tot, 0)} frames/s` : '';
+  $('mstotal').textContent = tot ? `total ${fmt(tot, 0)} ms → up to ${fmt(1000 / tot, 0)} frames/s` : '';
   redrawLive(S);
 }
 function redrawLive(S) {
   S = S || (live && live.Series) || {};
-  const t = arr(S.Time);
-  chart($('c-steer'), [{ x: t, y: arr(S.Steer), color: '--c2' }], { sym: true, minSpan: 2 });
+  const t = arr(S.Time), W = { window: windowS };
+  chart($('c-steer'), [{ x: t, y: arr(S.Steer), color: '--c2', label: 'steer command' }], { ...W, unit: 'deg', sym: true, minSpan: 2, digits: 1 });
   chart($('c-lane'), [
-    { x: t, y: arr(S.Left), mask: arr(S.LeftOk), color: '--c3' },
-    { x: t, y: arr(S.Right), mask: arr(S.RightOk), color: '--c1' },
-    { x: t, y: arr(S.Centre), color: '--c4', width: 2.2 }], { sym: true, minSpan: 1 });
-  chart($('c-speed'), [{ x: t, y: arr(S.Speed), color: '--c1' }], { ymin: 0, limit: 33 });
-  chart($('c-ms'), [{ x: t, y: arr(S.DetectMs), color: '--c1' }, { x: t, y: arr(S.WarpMs), color: '--c4' }, { x: t, y: arr(S.FitMs), color: '--c3' }], { ymin: 0 });
+    { x: t, y: arr(S.Left), mask: arr(S.LeftOk), color: '--c3', label: 'left line' },
+    { x: t, y: arr(S.Right), mask: arr(S.RightOk), color: '--c1', label: 'right line' },
+    { x: t, y: arr(S.Centre), color: '--c4', width: 2.6, label: 'lane centre (tracked)' }], { ...W, unit: 'm', ymin: -3, ymax: 3 });   // clamped: a one-frame mis-fit must not squash the view
+  const total = arr(S.DetectMs).map((v, i) => v + (arr(S.WarpMs)[i] || 0) + (arr(S.FitMs)[i] || 0));
+  const lat = [{ x: t, y: arr(S.DetectMs), color: '--c1', label: 'lane detector' },
+    { x: t, y: arr(S.WarpMs), color: '--c4', label: "bird's-eye" },
+    { x: t, y: arr(S.FitMs), color: '--c3', label: 'fit + controller' },
+    { x: t, y: total, color: '--c6', width: 2.6, label: 'total' }];
+  if (arr(S.AgeMs).length) lat.push({ x: t, y: arr(S.AgeMs), color: '--c5', dash: [3, 3], label: 'camera → command' });
+  chart($('c-ms'), lat, { ...W, unit: 'ms', ymin: 0, digits: 0, lines: [{ y: BUDGET_MS, label: '50 ms budget' }] });
+  chart($('c-speed'), [{ x: t, y: arr(S.Speed), color: '--c1', label: 'speed' }], { ...W, unit: 'km/h', ymin: 0, digits: 1, lines: [{ y: 33, label: '33 km/h limit' }] });
 }
 
 async function pollGpu() {
   try {
     const r = await fetch('/api/gpu', { cache: 'no-store' }); gpu = await r.json();
     const g = gpu.latest;
-    if (!g) { $('gpuname').textContent = gpu.error || 'waiting for nvidia-smi'; return; }
-    $('gpuname').textContent = '· ' + g.name;
-    $('g-util').textContent = fmt(g.util, 0); $('g-mem').textContent = fmt(g.memUsed / 1024, 1);
-    $('g-memt').textContent = ' / ' + fmt(g.memTotal / 1024, 1) + ' GB';
-    $('g-temp').textContent = fmt(g.temp, 0); $('g-pow').textContent = fmt(g.power, 0);
-    $('g-clk').textContent = fmt(g.clock, 0); $('g-ps').textContent = g.pstate;
+    const hasGpu = g && g.name;
+    document.querySelectorAll('.tile.gpu').forEach(e => e.classList.toggle('hidden', !hasGpu));
+    $('gpuname').textContent = hasGpu ? '· ' + g.name : '· ' + (gpu.error || 'CPU only');
+    if (!g) return;
+    $('g-cpu').textContent = fmt(g.cpu, 0);
+    if (hasGpu) {
+      $('g-util').textContent = fmt(g.util, 0); $('g-mem').textContent = fmt(g.memUsed / 1024, 1);
+      $('g-memt').textContent = ' / ' + fmt(g.memTotal / 1024, 1) + ' GB'; $('g-temp').textContent = fmt(g.temp, 0);
+    }
     redrawGpu();
   } catch (e) {}
 }
 function redrawGpu() {
-  if (!gpu || !gpu.history.length) return;
+  if (!gpu || !gpu.history || !gpu.history.length) return;
   const h = gpu.history, t0 = h[h.length - 1].t, x = h.map(s => s.t - t0);
-  chart($('c-gpu'), [
-    { x, y: h.map(s => s.util), color: '--c1' },
-    { x, y: h.map(s => 100 * s.memUsed / s.memTotal), color: '--c2' },
-    { x, y: h.map(s => 100 * s.clock / (s.clockMax || 1)), color: '--c5' }], { ymin: 0, ymax: 100 });
+  const ser = [{ x, y: h.map(s => s.cpu), color: '--c4', label: `CPU load (${(h[h.length - 1].cores) || '?'} threads)` }];
+  if (h[h.length - 1].name) {
+    ser.push({ x, y: h.map(s => s.util), color: '--c1', label: 'GPU load' });
+    ser.push({ x, y: h.map(s => 100 * s.memUsed / s.memTotal), color: '--c2', label: 'GPU memory' });
+  }
+  chart($('c-gpu'), ser, { unit: '%', ymin: 0, ymax: 100, digits: 0 });
 }
-function redraw() { if (live) redrawLive(); redrawGpu(); }
+function redraw() { if (live) redrawLive(); redrawGpu(); for (const c of charts.keys()) draw(c); }
 window.addEventListener('resize', redraw);
 
 // ---------------------------------------------------------------- results
-const VCOLS = [['Video', 'Video'], ['Frames', 'Frames'], ['Duration_s', 'Length s'], ['LaneWidth_m', 'Lane m'],
-  ['BothLines_pct', 'Both lines %'], ['LkaActive_pct', 'LKA active %'], ['Distance_m', 'Distance m'],
-  ['MaxSpeed_kmh', 'Max km/h'], ['YawRange_deg', 'Yaw range °'], ['MaxSteerCmd_deg', 'Max steer °'], ['MinTurnRadiusCmd_m', 'Min R m']];
+const VCOLS = [['Video', 'Clip'], ['Frames', 'Frames'], ['Duration_s', 'Length s'], ['BothLines_pct', 'Both lines %'],
+  ['AnyLine_pct', 'Any line %'], ['LkaActive_pct', 'LKA active %'], ['Detect_ms', 'Detector ms'], ['Matlab_ms', 'Warp + fit ms'],
+  ['MaxSpeed_kmh', 'Max km/h'], ['MaxSteerCmd_deg', 'Max steer °']];
+const LCOLS = [['Session', 'Session'], ['Frames', 'Frames'], ['Duration_s', 'Length s'], ['BothLines_pct', 'Both lines %'],
+  ['Node_ms', 'Node ms'], ['Matlab_ms', 'MATLAB ms']];
 const SCOLS = [['Scenario', 'Scenario'], ['Controller', 'Controller'], ['MaxLatOffset_m', 'Max |lat| m'], ['RmsLatOffset_m', 'RMS lat m'],
   ['MinWheelMargin_m', 'Min wheel margin m'], ['InLaneRatio', 'In lane'], ['RulebookScore', 'Score'], ['MaxSpeed_kmh', 'Max km/h'],
   ['VisionMsMean', 'ms/frame'], ['BothLinesRatio', 'Both lines']];
-function cell(v) { const n = Number(v); return (v !== '' && Number.isFinite(n)) ? `<td class="num">${Math.abs(n) >= 100 ? n.toFixed(0) : n.toFixed(Math.abs(n) < 1 ? 3 : 1)}</td>` : `<td>${v ?? ''}</td>`; }
+function cell(v) { const n = Number(v); return (v !== '' && v !== null && v !== undefined && Number.isFinite(n)) ? `<td class="num">${Math.abs(n) >= 100 ? n.toFixed(0) : n.toFixed(Math.abs(n) < 1 ? 3 : 1)}</td>` : `<td>${v ?? ''}</td>`; }
 function table(el, rows, cols) {
-  if (!rows.length) { el.innerHTML = '<tr><td class="empty">No results yet.</td></tr>'; return; }
-  el.innerHTML = '<tr>' + cols.map(c => `<th>${c[1]}</th>`).join('') + '<th>Files</th></tr>' + rows.map((r, i) =>
+  if (!rows || !rows.length) { el.innerHTML = '<tr><td class="empty">No results yet.</td></tr>'; return; }
+  el.innerHTML = '<tr>' + cols.map(c => `<th>${c[1]}</th>`).join('') + '<th>Files</th></tr>' + rows.map((r) =>
     '<tr>' + cols.map(c => cell(r.row[c[0]])).join('') + '<td class="links">' + Object.entries(r.files).map(([k, u]) =>
-      `<a href="#" data-u="${encodeURI(u)}" data-k="${k}" data-t="${(r.row.Video || r.row.Scenario || '').replace(/"/g, '')}">${k}</a>`).join('') + '</td></tr>').join('');
+      `<a href="#" data-u="${encodeURI(u)}" data-k="${k}" data-t="${String(r.row.Video || r.row.Session || r.row.Scenario || '').replace(/"/g, '')}">${k}</a>`).join('') + '</td></tr>').join('');
   el.querySelectorAll('a[data-u]').forEach(a => a.onclick = (ev) => { ev.preventDefault(); openViewer(a.dataset.k, a.dataset.u, a.dataset.t); });
 }
 async function loadResults() {
   try { const r = await fetch('/api/results', { cache: 'no-store' }); const d = await r.json();
-    table($('tbl-videos'), d.videos, VCOLS); table($('tbl-sims'), d.sims, SCOLS); } catch (e) {}
+    table($('tbl-lives'), d.lives, LCOLS); table($('tbl-videos'), d.videos, VCOLS); table($('tbl-sims'), d.sims, SCOLS); } catch (e) {}
 }
 function openViewer(kind, url, title) {
-  if (kind === 'csv') { window.open(url, '_blank'); return; }
+  if (kind === 'csv' || kind === 'replay') { window.open(url, '_blank'); return; }
   $('viewer-title').textContent = title + ' · ' + kind;
   $('viewer-body').innerHTML = kind === 'video' ? `<video src="${url}" controls autoplay muted playsinline></video>` : `<img src="${url}" alt="${kind}">`;
   $('viewer').showModal();
