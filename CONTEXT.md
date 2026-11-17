@@ -32,7 +32,7 @@ and `docs/laneassist_comparison.md` (the detector comparison and its findings L1
   it finds both lines in 75–87 % of frames (classic 96–99 %) but has the fewest line swaps. On
   college_lane, probably its training clip, 53 % (classic 28–41 %). On rendered frames F1 is
   0.60 (classic 0.996), so **the Unreal bench is the open risk**.
-- **Tests:** `runtests('tests/unit_tests')`: 111 of 111 pass (see the lighting-track bullet).
+- **Tests:** `runtests('tests/unit_tests')`: 113 of 113 pass (see the lighting-track bullet).
   New: `test_mobilenet_detector`, fixture `tests/fixtures/college_lane_t20.jpg`. `test_vision_benchmark` now has a regression floor
   for the synthetic set, not a quality target.
 - **Lighting test track (added the same day):** one definition, `data/scenarios/lka_lighting_track.m`,
@@ -42,7 +42,13 @@ and `docs/laneassist_comparison.md` (the detector comparison and its findings L1
   rendered by Blender (`render_drive.py`, Cycles GPU, real shadows) and scored with
   `scripts/score_lighting_track.m`. Results in `perception/README.md`: glare 56.6 % and
   60° bends 56.3 % both-lines are the weak spots. `LkaVideoWriter` (MJPEG + ffmpeg,
-  no B-frames) fixed the headless VideoWriter failures: unit tests are now 111 of 111.
+  no B-frames) fixed the headless VideoWriter failures: unit tests are now 113 of 113.
+- **Closed loop with Blender camera:** `run_lka_blender_sim` / `LKA_Blender_TestBench`
+  (plant pose -> `tools/blender/render_server.py` -> Mobilenet -> `LKA_Controller`). Lighting
+  track 0 -> 8 km/h: pure pursuit max 0.49 m / RMS 0.14 m, MPC max 0.37 m / RMS 0.13 m, in
+  lane 100 % both. Worst section is the S-bend, caused by the lane estimate at the rear axle
+  (`docs/bug_report.md` O10, O11). Review / Jetson plan: `docs/algorithm_review.md`;
+  status: `docs/completion_report.md`.
 - **Annotated videos:** one per detector, all on clip 12.23.28 (`test_res/mobilenet/`,
   `backup_lane_detection/test_res/{classic,cnn,yolop}/`), plus the lighting-track run.
 - **Not done / next:** label Unreal frames and retrain (the sim gap); measure the camera mount

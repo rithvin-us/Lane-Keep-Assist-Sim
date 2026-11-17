@@ -4,7 +4,7 @@
 
 | Item | Where | State |
 |---|---|---|
-| Mobilenet Approach as the only active detector; old detectors archived | `perception/`, `backup_lane_detection/` | done, tests 111 of 111 (before the closed-loop work) |
+| Mobilenet Approach as the only active detector; old detectors archived | `perception/`, `backup_lane_detection/` | done, tests 113 of 113 |
 | Live camera path (ZED 2i / USB → node → MATLAB → dashboard) | `realtime/lane_node.py`, `run_lka_live`, `docs/real_time_guide.md` | tested with a recorded clip as the camera; not yet with a real ZED |
 | Lighting test track: one definition → Blender scene / USD | `lka_lighting_track`, `tools/blender/` | done; Unreal use is Windows only |
 | Open-loop scoring on the rendered drive | `score_lighting_track` | done (`perception/README.md`) |
@@ -30,4 +30,4 @@ was, because of the lane estimate at the rear axle (bug report O10).
 2. O10: anchor the lane estimate at the first visible row; this also removes the false LDW warnings (O11).
 3. Label glare, tight-bend, simulator and ZED frames; retrain; re-run `run_lka_blender_sim` and `score_lighting_track`.
 4. Jetson: TensorRT engine and `trtexec` latency; code generation for the lane fit and controller (`docs/algorithm_review.md` §5).
-5. A unit test for the new telemetry actions (`'pose'`, `'road'`, `'extra'`) and a short `run_lka_blender_sim` regression run.
+5. A short `run_lka_blender_sim` regression run in the test suite (telemetry actions are now covered by `test_monitor_publish`).

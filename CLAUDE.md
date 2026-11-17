@@ -24,6 +24,6 @@ Read `CONTEXT.md` §0 first (current state), then `README.md` (layout, commands)
 - A new detector gets its own approach folder, and its numbers go into `perception/README.md` before it becomes the default.
 - Score clips with `tools/clip_metrics.py` and the lighting track with `score_lighting_track`, so numbers stay comparable.
 - Keep one annotated video per detector (clip 12.23.28) plus the current test videos. `test_res/**/*.mp4` is git-ignored.
-- Tests: `runtests('tests/unit_tests')` must pass 111 of 111. Check `git status models/` afterwards: `test_vision_bench_build` regenerates a `.slx`.
+- Tests: `runtests('tests/unit_tests')` must pass 113 of 113. Check `git status models/` afterwards: `test_vision_bench_build` regenerates a `.slx`.
 - Bugs found go into `docs/bug_report.md` (fixed or open).
 - Commit / push only when asked; work on a branch, not `main`.
