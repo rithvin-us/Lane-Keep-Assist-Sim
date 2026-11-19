@@ -29,13 +29,7 @@ function T = measure_lka_timing(options)
     img = imread(options.Image);
     cam = lka_camera_model(V.Camera, V.Bev);
 
-    detectors = {'classic', 'laneassist'};
-    if lka_onnx_runtime_available()
-        detectors{end + 1} = 'yolop';
-        if isfile(fullfile(V.DetectorDir, 'team_cnn.onnx'))
-            detectors{end + 1} = 'cnn';
-        end
-    end
+    detectors = lka_detector_create('list');      % every installed perception/<Approach>
 
     rows = {};
     prob = [];

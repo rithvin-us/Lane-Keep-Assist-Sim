@@ -17,9 +17,9 @@ function t = watch_lka_videos(options)
 %
 % Name-value options:
 %   Folder        videos to watch (default vids/)
-%   OutRoot       results (default test_res/)
+%   OutRoot       results (default test_res/<detector>/)
 %   Period        seconds between checks (default 30)
-%   Detector      '' (default: team CNN when available, else classic) | 'cnn' | 'classic' | 'yolop'
+%   Detector      '' (default LKA.Vision.Detector, 'mobilenet') | any lka_detector_create('list') name
 %   TrackProfile  'tight' (default, college track) | 'official' (lka_set_track_profile)
 %   MinRadius     tightest bend of the track [m] (default 3)
 %   Video         write the annotated video (default true)
@@ -40,7 +40,11 @@ function t = watch_lka_videos(options)
     end
     root = fileparts(fileparts(mfilename('fullpath')));
     if isempty(options.Folder), options.Folder = fullfile(root, 'vids'); end
-    if isempty(options.OutRoot), options.OutRoot = fullfile(root, 'test_res'); end
+    if isempty(options.OutRoot)
+        det = options.Detector;
+        if isempty(det), det = 'mobilenet'; end
+        options.OutRoot = fullfile(root, 'test_res', det);
+    end
     t = [];
 
     old = timerfindall('Tag', 'lka_video_watch');

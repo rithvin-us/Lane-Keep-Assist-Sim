@@ -14,7 +14,7 @@ function setupOnce(testCase)
     run(fullfile(testCase.TestData.root, 'config', 'startup.m'));
     evalin('base', 'create_lka_buses;');
     LKA = lka_build_params('baja', evalin('base', 'vehicle'), evalin('base', 'sensor'));
-    V = LKA.Vision; V.Detector = 'classic'; V.UseGpu = false;
+    V = LKA.Vision; V.Detector = 'mobilenet'; V.UseGpu = false;
     testCase.TestData.LKA = LKA;
     testCase.TestData.V = V;
     testCase.TestData.cam = lka_camera_model(V.Camera, V.Bev);
@@ -80,15 +80,15 @@ end
 function testRunOnSyntheticVideo(testCase)
     V = testCase.TestData.V; cam = testCase.TestData.cam;
     f = [tempname '.mp4'];
-    vw = VideoWriter(f, 'MPEG-4'); vw.FrameRate = 20; open(vw);
+    vw = LkaVideoWriter(f, 20);                    % MPEG-4 or MJPEG + ffmpeg (headless Linux)
     s = lka_default_scene(); s.Offset = 0.3;
     [img, ~, gt] = lka_render_lane_scene(cam, s);
     for k = 1:30
-        writeVideo(vw, img);
+        vw.write(img);
     end
-    close(vw);
+    vw.close();
     outDir = tempname;
-    out = run_lka_on_video(f, Detector='classic', Camera=V.Camera, Speed=8, OutDir=outDir, Video=false);
+    out = run_lka_on_video(f, Detector='mobilenet', Camera=V.Camera, Speed=8, OutDir=outDir, Video=false);
     testCase.verifyTrue(isfile(fullfile(outDir, 'lka_video_results.csv')));
     testCase.verifyTrue(isfile(fullfile(outDir, 'lka_video_overview.png')));
     T = out.Table;

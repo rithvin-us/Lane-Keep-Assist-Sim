@@ -40,7 +40,6 @@ pathsToRemove = {
     fullfile(projectRoot, 'src', 'vision');
     fullfile(projectRoot, 'src', 'sensors');
     fullfile(projectRoot, 'src', 'legacy');
-    fullfile(projectRoot, 'models', 'perception');
     fullfile(projectRoot, 'tests', 'helpers');
     fullfile(projectRoot, 'scripts');
     fullfile(projectRoot, 'tests');

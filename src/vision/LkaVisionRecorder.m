@@ -45,10 +45,7 @@ classdef LkaVisionRecorder < matlab.System
             end
             if isfield(obj.Vision, 'Bench') && isfield(obj.Vision.Bench, 'RawVideoFile') ...
                     && ~isempty(obj.Vision.Bench.RawVideoFile)
-                obj.RawWriter = VideoWriter(obj.Vision.Bench.RawVideoFile, 'MPEG-4');
-                obj.RawWriter.FrameRate = round(1 / obj.Ts);
-                obj.RawWriter.Quality = 95;
-                open(obj.RawWriter);
+                obj.RawWriter = LkaVideoWriter(obj.Vision.Bench.RawVideoFile, round(1 / obj.Ts), 95);
             end
             file = obj.FileName;
             if isempty(file) && isfield(obj.Vision, 'Bench')
@@ -64,27 +61,25 @@ classdef LkaVisionRecorder < matlab.System
             if isempty(obj.Cam)
                 obj.Cam = lka_camera_model(obj.Vision.Camera, obj.Vision.Bev);
             end
-            obj.Writer = VideoWriter(file, 'MPEG-4');
-            obj.Writer.FrameRate = round(1 / obj.Ts);
-            open(obj.Writer);
+            obj.Writer = LkaVideoWriter(file, round(1 / obj.Ts));
         end
 
         function stepImpl(obj, img, preview, sensor, steerDeg, state, speed, radius)
             if ~isempty(obj.RawWriter)
-                writeVideo(obj.RawWriter, img);
+                obj.RawWriter.write(img);
             end
             obj.Count = obj.Count + 1;
             radius = double(radius);
             hud = struct('SteerDeg', double(steerDeg), 'State', double(state), 'Time', (obj.Count - 1) * obj.Ts, ...
                 'SpeedKmh', 3.6 * double(speed), 'TurnRadius', radius, 'CurvatureCmd', 1 / radius);
             if ~isempty(obj.Writer)
-                writeVideo(obj.Writer, lka_annotate_frame(img, preview, sensor, hud, obj.Cam));
+                obj.Writer.write(lka_annotate_frame(img, preview, sensor, hud, obj.Cam));
             end
             if obj.Monitor
                 s = struct('Time', hud.Time, 'Frame', obj.Count, ...
                     'Left', sensor.Left.LateralOffset * (sensor.Left.Strength > 0), 'LeftOk', sensor.Left.Strength > 0, ...
                     'Right', sensor.Right.LateralOffset * (sensor.Right.Strength > 0), 'RightOk', sensor.Right.Strength > 0, ...
-                    'Centre', centre(sensor), 'Steer', hud.SteerDeg, 'State', hud.State, ...
+                    'Centre', centre(sensor), 'Heading', heading(sensor), 'Steer', hud.SteerDeg, 'State', hud.State, ...
                     'Speed', hud.SpeedKmh, 'Radius', radius);
                 lka_monitor_publish('sample', s, @() lka_annotate_frame(img, preview, sensor, hud, obj.Cam));
             end
@@ -92,11 +87,11 @@ classdef LkaVisionRecorder < matlab.System
 
         function releaseImpl(obj)
             if ~isempty(obj.Writer)
-                close(obj.Writer);
+                obj.Writer.close();
                 obj.Writer = [];
             end
             if ~isempty(obj.RawWriter)
-                close(obj.RawWriter);
+                obj.RawWriter.close();
                 obj.RawWriter = [];
             end
         end
@@ -127,4 +122,12 @@ function c = centre(sensor)
     if sensor.Left.Strength > 0 && sensor.Right.Strength > 0
         c = 0.5 * (sensor.Left.LateralOffset + sensor.Right.LateralOffset);
     end
+end
+
+function h = heading(sensor)
+% Lane heading relative to the vehicle [deg]: mean of the reported lines, NaN without one.
+    hs = [sensor.Left.HeadingAngle, sensor.Right.HeadingAngle];
+    ok = [sensor.Left.Strength, sensor.Right.Strength] > 0;
+    h = NaN;
+    if any(ok), h = rad2deg(mean(hs(ok))); end
 end

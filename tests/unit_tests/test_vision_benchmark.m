@@ -38,9 +38,14 @@ end
 function testBenchmarkOnSyntheticDataset(testCase)
     folder = tempname;
     make_synthetic_vision_dataset(folder, 8, testCase.TestData.V);
-    T = lka_detector_benchmark(folder, {'classic'}, testCase.TestData.V);
+    T = lka_detector_benchmark(folder, {'mobilenet'}, testCase.TestData.V);
     testCase.verifyEqual(height(T), 1);
-    testCase.verifyGreaterThan(T.F1, 0.8);
-    testCase.verifyGreaterThan(T.DetRateLeft, 0.85);
+    % Regression floor, not a quality target: the Mobilenet Approach was trained on 31 real
+    % college frames and has never seen a rendered lane. Measured 2026-11-16 on these
+    % renders: F1 0.60-0.63, left detection 0.67-0.75, MaeY10 0.015 m (60 / 8 frames). The
+    % archived classic detector scored F1 0.996 here (backup_lane_detection/README.md).
+    % Raise the floor when the model is trained on simulator frames.
+    testCase.verifyGreaterThan(T.F1, 0.45);
+    testCase.verifyGreaterThan(T.DetRateLeft, 0.55);
     testCase.verifyLessThan(T.MaeY10_m, 0.1);
 end

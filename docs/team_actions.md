@@ -1,5 +1,11 @@
 # What the team still has to do (LKA, status 2026-10-18)
 
+> **Update 2026-11-16: detector swap.** The lane detector is now the **Mobilenet Approach**
+> (`perception/Mobilenet_Approach/`, `LKA.Vision.Detector = 'mobilenet'`). The team CNN
+> (UFLDv2), YOLOP, classic and LaneAssist detectors are archived in `backup_lane_detection/`.
+> Where this file talks about them it is history; the commands below were updated. Current
+> numbers: `perception/README.md`. Review and Jetson plan: `docs/algorithm_review.md`.
+
 The software side is complete for the virtual round: controller, simulation benches, camera
 lane detection (team CNN on the GPU), track-video tool and live dashboard are in `main` and
 tested. The items below need **people, measurements, data or installs** that cannot be done
@@ -24,7 +30,7 @@ it has not run in MATLAB with the team CNN yet.
    for every clip. Watch each `lka_video_annotated.mp4`: the green and blue lines must sit on the
    painted lines through the bends.
 4. Check the official track is unchanged: `run_lka_mil(Scenarios={'S1_Nominal'}, Controllers=1)` and
-   `run_lka_vision(Detectors={'cnn'})` must match `docs/lka_controller.md` §6 and §8.
+   `run_lka_vision(Detectors={'mobilenet'})` must match `docs/lka_controller.md` §6 and §8.
 
 **Give back.** The new `test_res/summary.csv` and the `results/checks/lka_checks_*.md` report.
 
@@ -128,7 +134,7 @@ wheelbase 1.45 m and 240 kg; the 2025 CarMaker Baja had 1.341 m and about 347 kg
 - mass and axle loads.
 
 **Give back.** The values, or edit `data/parameters/vehicle_params.m` directly. Then run
-`run_lka_mil()` and `run_lka_vision(Detectors={'cnn'})` and compare with
+`run_lka_mil()` and `run_lka_vision(Detectors={'mobilenet'})` and compare with
 `docs/lka_controller.md` §6 and §8.
 
 ### 7. Watch the result videos and report wrong frames
@@ -148,7 +154,11 @@ first ones to label in item 8 (`extract_frames.py --times` picks them up).
 
 ## P2 — improves the team CNN on the college track
 
-### 8. Fine-tune the team CNN (UFLDv2) on college-track frames
+### 8. Fine-tune the lane detector on college-track frames
+
+*Since 2026-11-16 this applies to the Mobilenet Approach: label with CVAT and train with
+`perception/Mobilenet_Approach/training/` (its README), then `python deploy/export_onnx.py`.
+The UFLDv2 steps below are archived with `backup_lane_detection/tools/finetune/`.*
 
 **Why.** The CNN was trained on TuSimple highway images. On the college snake section
 (clip 12.23.28) it takes road edges and kerbs for lane lines (both lines found in only 60 % of
@@ -212,7 +222,7 @@ make it see this track is more training data. Code-side tricks were tested and d
    `team_cnn.onnx` on the team Drive and in `models/perception/` (the file is too big for
    GitHub). Delete `models/perception/team_cnn_dlnetwork.mat` so MATLAB re-imports it.
 8. **Check in MATLAB**: `runtests('tests/unit_tests/test_ufld_reference_parity.m')`,
-   `run_lka_on_test_videos()`, `run_lka_vision(Detectors={'cnn'})` (S1 must stay ≤ 0.05 m).
+   `run_lka_on_test_videos()`, `run_lka_vision(Detectors={'mobilenet'})` (S1 must stay ≤ 0.05 m).
 
 **Give back.** The new `.pth` and `.onnx` (Drive); the college-test accuracy before (step 4) and
 after (step 5) and the TuSimple accuracy after (step 6); the before / after
@@ -250,7 +260,7 @@ NVIDIA Control Panel → Manage 3D settings → Program settings → MATLAB → 
 
 - MATLAB R2026a with the toolboxes listed in `README.md`, plus the add-on **Deep Learning
   Toolbox Converter for ONNX Model Format**.
-- `git pull` the `main` branch; copy `models/perception/team_cnn.onnx` from the team Drive.
+- `git pull` the `main` branch (the detector ONNX is in git: `perception/Mobilenet_Approach/deploy/`).
 - Do not save the Simulink models in an older MATLAB release.
 
 ---

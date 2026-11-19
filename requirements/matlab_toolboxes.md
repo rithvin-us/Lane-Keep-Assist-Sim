@@ -21,8 +21,8 @@ Check what is installed with `ver`, or run `lka_check_requirements`.
 
 | Product | Used by | Without it |
 |---|---|---|
-| **Deep Learning Toolbox** | `dlnetwork`, `predict` (`src/vision/lka_onnx_backend.m`) | `cnn` and `yolop` cannot be created |
-| **Deep Learning Toolbox Converter for ONNX Model Format** (support package) | `importNetworkFromONNX` (`src/vision/lka_import_onnx_detector.m`) | the ONNX models cannot be imported; `lka_onnx_runtime_available` falls back to the Python `onnxruntime` path, which is CPU-only |
+| **Deep Learning Toolbox** | `dlnetwork`, `predict` (`src/vision/lka_onnx_backend.m`) | the `mobilenet` lane detector cannot run in MATLAB (offline video, Unreal bench); the live path still works because the Python lane node runs the network |
+| **Deep Learning Toolbox Converter for ONNX Model Format** (support package) | `importNetworkFromONNX` (`src/vision/lka_import_onnx_detector.m`) | the Mobilenet ONNX cannot be imported; `lka_onnx_runtime_available` falls back to the Python `onnxruntime` path, which is CPU-only |
 
 `classic` and `laneassist` need neither, which is why they are the fallbacks.
 

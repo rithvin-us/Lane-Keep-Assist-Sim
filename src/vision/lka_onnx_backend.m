@@ -19,7 +19,7 @@ function be = lka_onnx_backend(onnxFile, useGpu, backend)
 %               add-on as long as MATLAB's pyenv Python has onnxruntime installed.
 % 'auto'        'matlab' when the add-on is installed, else 'onnxruntime'.
 % The output layout differs between back ends (dlarray SSCB vs ONNX NCHW); callers
-% reorder by size (lka_onnx_output_hwc, lka_ufld_outputs).
+% reorder by size (lka_onnx_output_hwc).
     if nargin < 3 || isempty(backend)
         backend = 'auto';
     end

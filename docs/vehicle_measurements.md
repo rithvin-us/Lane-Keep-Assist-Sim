@@ -2,7 +2,7 @@
 
 Fill in the "Measured" column and send it back, or edit `data/parameters/vehicle_params.m`
 (vehicle) and `src/vision/lka_vision_params.m` (camera, profile `baja`) directly. After that:
-`run_lka_mil()` and `run_lka_vision(Detectors={'cnn'})`.
+`run_lka_mil()` and `run_lka_vision(Detectors={'mobilenet'})`.
 
 Priority: **A** the controller uses it directly (steering geometry, limits, camera position);
 **B** it changes the simulated vehicle (test bench accuracy); **C** fine tuning, estimate if

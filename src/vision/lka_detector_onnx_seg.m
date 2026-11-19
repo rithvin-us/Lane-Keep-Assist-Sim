@@ -7,7 +7,7 @@ function det = lka_detector_onnx_seg(sidecarFile, useGpu, backend)
 %   [prob, info] = det.Detect(rgb)          rgb uint8 H x W x 3 -> single H x W lane probability
 %   [probs, info] = det.DetectBatch(rgbs, keepOnGpu)   H x W x 3 x N -> H x W x 1 x N
 %
-% Contract and sidecar fields: models/perception/README.md (type "seg", e.g. YOLOP).
+% Contract and sidecar fields: perception/README.md (type "seg").
 % With the network on the GPU the whole chain runs there: letterbox, normalisation,
 % network, softmax / sigmoid, un-letterbox and resize back to the camera image; only the
 % probability map is copied back (or stays on the GPU with keepOnGpu = true, for
@@ -20,7 +20,7 @@ function det = lka_detector_onnx_seg(sidecarFile, useGpu, backend)
     onnxFile = fullfile(fileparts(sidecarFile), cfg.onnx);
     if ~isfile(onnxFile)
         error('lka:vision:modelMissing', ['Lane model "%s" not found. Export it to ONNX as ' ...
-            'described in models/perception/README.md.'], onnxFile);
+            'described in perception/README.md (deploy/export_onnx.py).'], onnxFile);
     end
     be = lka_onnx_backend(onnxFile, useGpu, backend);
     inSize = cfg.input_size(:)';

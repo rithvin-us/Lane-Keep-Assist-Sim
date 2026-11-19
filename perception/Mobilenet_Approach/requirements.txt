@@ -1,0 +1,13 @@
+# Mobilenet Approach: training, ONNX export and the live lane node.
+# CPU-only PyTorch is enough for the node and the export (the node runs onnxruntime):
+#   uv venv -p 3.12 .venv
+#   uv pip install --python .venv --index-url https://download.pytorch.org/whl/cpu \
+#       --extra-index-url https://pypi.org/simple --index-strategy unsafe-best-match -r requirements.txt
+# For training on an NVIDIA GPU install the CUDA build of torch / torchvision instead.
+opencv-python
+numpy
+torch
+torchvision
+segmentation-models-pytorch
+onnx
+onnxruntime

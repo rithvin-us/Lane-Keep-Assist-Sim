@@ -1,4 +1,4 @@
-# CONTEXT.md — session handoff for other agents
+1# CONTEXT.md — session handoff for other agents
 
 Written 2026-10-28. Everything below was measured or observed in this repository on this
 machine, not assumed. If a number here disagrees with a CSV in `results/`, trust the CSV and
@@ -6,6 +6,53 @@ fix this file.
 
 Read this with `README.md` (what the project is), `docs/lka_controller.md` (how the LKA works)
 and `docs/laneassist_comparison.md` (the detector comparison and its findings L1–L11).
+
+---
+
+## 0. Update 2026-11-16: detector swapped to the Mobilenet Approach
+
+**Read this first; §1–§8 below describe the state before the swap.**
+
+- **Active detector:** `perception/Mobilenet_Approach/` (U-Net + MobileNetV2 from
+  `Kathin007/Lane_Keep_Assist@05efeff`). `LKA.Vision.Detector = 'mobilenet'` is the default.
+  `lka_detector_create` finds detectors as `perception/*/deploy/<name>.json`.
+- **Archived** (off the path, nothing calls them): classic, LaneAssist, YOLOP, UFLDv2 `cnn`,
+  dashed/stop-line reports, their params, tests, results and the LaneAssist checkout. All in
+  `backup_lane_detection/`; its README explains how to bring one back.
+- **Dead code removed:** `src/controllers/pure_pursuit_steer.m` (no callers), a duplicated
+  `V.Track.CurvatureMax/CheckAtNear` pair in `lka_vision_params.m`.
+- **Live path (new):** `realtime/lane_node.py` (camera/ZED 2i → onnxruntime CPU → TCP) →
+  `scripts/run_lka_live.m` (warp, fit, controller preview, full `LKA_Controller` replay at the
+  end) → dashboard. Guide: `docs/real_time_guide.md`.
+- **Video tools:** `run_lka_on_video` has `Crop='auto'` (letterbox removal, as in training),
+  default detector `mobilenet`, results under `test_res/<detector>/<clip>/`.
+  `tools/clip_metrics.py` scores every run the same way.
+- **Numbers:** `perception/README.md`. Short version: live end to end 37.5 + 10.8 ms per frame
+  (CPU). In MATLAB the network takes 103–115 ms, which is offline only. On the WhatsApp clips
+  it finds both lines in 75–87 % of frames (classic 96–99 %) but has the fewest line swaps. On
+  college_lane, probably its training clip, 53 % (classic 28–41 %). On rendered frames F1 is
+  0.60 (classic 0.996), so **the Unreal bench is the open risk**.
+- **Tests:** `runtests('tests/unit_tests')`: 113 of 113 pass (see the lighting-track bullet).
+  New: `test_mobilenet_detector`, fixture `tests/fixtures/college_lane_t20.jpg`. `test_vision_benchmark` now has a regression floor
+  for the synthetic set, not a quality target.
+- **Lighting test track (added the same day):** one definition, `data/scenarios/lka_lighting_track.m`,
+  drives the ground truth and a Blender scene: `tools/blender/build_lighting_track.py` →
+  `data/scenes/LightingTrack/LightingTrack.usd`, Unreal scenario `S6_LightingTrack`. **Unreal
+  cannot load USD at run time on Linux** (MathWorks limitation), so here the track is
+  rendered by Blender (`render_drive.py`, Cycles GPU, real shadows) and scored with
+  `scripts/score_lighting_track.m`. Results in `perception/README.md`: glare 56.6 % and
+  60° bends 56.3 % both-lines are the weak spots. `LkaVideoWriter` (MJPEG + ffmpeg,
+  no B-frames) fixed the headless VideoWriter failures: unit tests are now 113 of 113.
+- **Closed loop with Blender camera:** `run_lka_blender_sim` / `LKA_Blender_TestBench`
+  (plant pose -> `tools/blender/render_server.py` -> Mobilenet -> `LKA_Controller`). Lighting
+  track 0 -> 8 km/h: pure pursuit max 0.49 m / RMS 0.14 m, MPC max 0.37 m / RMS 0.13 m, in
+  lane 100 % both. Worst section is the S-bend, caused by the lane estimate at the rear axle
+  (`docs/bug_report.md` O10, O11). Review / Jetson plan: `docs/algorithm_review.md`;
+  status: `docs/completion_report.md`.
+- **Annotated videos:** one per detector, all on clip 12.23.28 (`test_res/mobilenet/`,
+  `backup_lane_detection/test_res/{classic,cnn,yolop}/`), plus the lighting-track run.
+- **Not done / next:** label Unreal frames and retrain (the sim gap); measure the camera mount
+  on the vehicle; train on ZED footage from the field test; a Jetson TensorRT measurement.
 
 ---
 
@@ -85,8 +132,9 @@ not fire reliably on a synthetic scene. The clip table below is the realistic on
 | `laneassist` re-tuned | 52.3 % | 44.6 % | 6.4 % | 7.1–9.5 ms | 106–140 Hz |
 | `yolop` | 86.7 % | 88.6 % | 50.1 % | 94–96 ms | 10.5–10.6 Hz |
 
-Column is both-lines ratio at the shipped defaults (`RoiFromBev` on, `ConsistencyWeight` 0,
-official track profile). §4a has the numbers for the other two configurations. `yolop` is ~20x slower than `classic` against a 20 Hz loop budget and
+Column is both-lines ratio, measured with `RoiFromBev` on, `ConsistencyWeight` 0 and
+`AdaptiveRange` **off**, which was the default at the time. With `AdaptiveRange` on (the default
+since), `classic` reads 96.7 / 99.0 / 67.1 % — see the change table in §4. `yolop` is ~20x slower than `classic` against a 20 Hz loop budget and
 behind it on every clip, but ahead of the re-tuned `laneassist` everywhere.
 
 Why both-lines and not lateral offset: the camera is unmeasured. Pitch auto-calibration returned
@@ -108,7 +156,7 @@ MPC passes everywhere except S4, which Pure Pursuit also fails.
 | Change | State | Evidence |
 |---|---|---|
 | `V.Classic.RoiFromBev` — compute the paint map only on rows below the horizon | **default on** | −9.3 % detector time on the Unreal frame (interleaved A/B), −20 to −38 % on the clips, detection identical everywhere measured |
-| `V.Fit.AdaptiveRange` (PR #1) — shorten the fitted span until the polynomial follows the line | **stays off by default**, see §4a | the single best cure for jitter on the recorded clips, but the defaults are pinned to the official track by `testDefaultsKeepOfficialBehaviour` |
+| `V.Fit.AdaptiveRange` — shorten the fitted span until the polynomial follows the line (came from PR #1, shipped off) | **default on** | fixes the flicker on clip 12.23.27: both-lines 95.5 → 99.0 %, offset jumps > 0.3 m 212 → 19, line swaps > 1 m 38 → 3, pair-width CV 0.242 → 0.119. Clip 12.23.27 (1) 95.7 → 96.7 %. Clip 12.23.28 trades coverage for correctness: 86.8 → 67.1 % both-lines but 147 → 20 line swaps. No change on the labelled synthetic set. +0.6–0.9 ms/frame |
 | `lka_bev_odometry` no longer calls `hann` | **fixed** | Signal Processing Toolbox dependency killed the odometry and video path; 4 tests went from erroring to passing |
 | `V.Fit.ConsistencyWeight` — temporal term in `Strength` | implemented, **default 0** | +0.9 points on clip 1, **−19.2 on clip 3** once the prior-staleness fix landed |
 | `V.Classic.Adaptive` — per-frame paint offset | implemented, default off | no detection change on any clip, +1.8 ms/frame |
@@ -125,51 +173,6 @@ The detector plugs into the existing contract (`det.Detect(rgb) → prob`), so
 `LKA.Vision.Detector = 'laneassist'` works everywhere `classic` does. Parameters live in
 `V.LaneAssist`, rescaled from their 848×480 config to our 1280×720 (columns ×1.51, rows ×1.5,
 second-degree limit ×0.671) — **an assumption, not a measurement**.
-
----
-
-## 4a. Which settings to use on the recorded college-track clips
-
-The clips are not the official track: 1.8-2.2 m lanes, road radii 18-56 m, a phone on an
-unmeasured mount. Three configurations were measured on all three clips, `classic` detector,
-same auto-calibration per clip. "jumps" is frame-to-frame offset steps over 0.3 m, "swaps" over
-1 m (a fit that moved to a different line), CV is pair-width std / median.
-
-| Clip | config | both-lines | jumps | swaps | CV | flips |
-|---|---|---|---|---|---|---|
-| 12.23.27 (1) | official (shipped) | 95.7 % | 52 | 14 | 0.161 | 5 |
-| | official + `AdaptiveRange` | 96.7 % | 90 | 29 | 0.149 | 7 |
-| | `tight` R3 | 96.2 % | 190 | 49 | 0.404 | 3 |
-| 12.23.27 | official (shipped) | 95.5 % | 212 | 38 | 0.242 | 18 |
-| | official + `AdaptiveRange` | 99.0 % | **19** | **3** | **0.119** | 4 |
-| | `tight` R3 | **99.5 %** | 180 | 24 | 0.309 | **2** |
-| 12.23.28 | official (shipped) | **86.8 %** | 381 | 147 | 0.492 | 36 |
-| | official + `AdaptiveRange` | 67.1 % | 114 | 20 | 0.275 | 8 |
-| | `tight` R3 | 80.5 % | 263 | 82 | 0.459 | 18 |
-
-Read it like this:
-
-- **Visible flicker in a rendered video is the jump/swap/CV columns, not coverage.** On
-  12.23.27 the shipped defaults find both lines in 95.5 % of frames yet swap line 38 times;
-  that is what looks wrong on screen.
-- **`AdaptiveRange` alone is the best cure for jitter** (12.23.27: 212 → 19 jumps, 38 → 3 swaps,
-  CV halved) because it *rejects* fits that do not follow the line. It costs coverage where the
-  lines are faint (12.23.28: 86.8 → 67.1 %), and most of what it drops there were wrong-line
-  fits (147 → 20 swaps).
-- **The full `tight` profile is the best cure for dropouts** (12.23.27: 99.5 %, flips 18 → 2)
-  because it *accepts* more fits — so its jitter stays high. `MinRadius` is not a tuning knob
-  for this: raising it to 8 or 15 only rejects more (12.23.27 falls to 55.9 % at R15).
-- On the labelled synthetic set `AdaptiveRange` is a **no-op** (identical F1, IoU, MaeY): those
-  rendered lines never exceed `MaxResidual`, so nothing is cut.
-
-So: render or replay these clips with `LKA.Vision.Fit.AdaptiveRange = true` on the official
-profile for the steadiest geometry, or `lkaTrackProfile = 'tight'` before `config/startup.m`
-when continuity of detection matters more. The defaults are **not** changed, because
-`tests/unit_tests/test_vision_tight_track.m` pins them to the official track on purpose
-(`testDefaultsKeepOfficialBehaviour`).
-
-The annotated videos in `test_res/<clip>/lka_annotated_classic.mp4` were rendered with
-`AdaptiveRange = true`.
 
 ---
 

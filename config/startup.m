@@ -26,13 +26,17 @@ pathsToAdd = {
     fullfile(projectRoot, 'src', 'vision');
     fullfile(projectRoot, 'src', 'sensors');
     fullfile(projectRoot, 'src', 'legacy');
-    fullfile(projectRoot, 'models', 'perception');
     fullfile(projectRoot, 'tests', 'helpers');
     fullfile(projectRoot, 'scripts');
     fullfile(projectRoot, 'tests');
     fullfile(projectRoot, 'tests', 'unit_tests');
     fullfile(projectRoot, 'tests', 'scenario_tests');
 };
+
+% every lane-detector approach: perception/<Approach>/deploy holds the ONNX, its sidecar
+% and the layer code the ONNX importer generates (it has to be on the path)
+deployDirs = dir(fullfile(projectRoot, 'perception', '*', 'deploy'));
+pathsToAdd = [pathsToAdd; unique({deployDirs.folder})'];   % dir lists the folders' contents
 
 for i = 1:numel(pathsToAdd)
     if exist(pathsToAdd{i}, 'dir')

@@ -54,5 +54,5 @@ function testParamsInLkaStruct(testCase)
     testCase.verifyTrue(isfolder(V.DetectorDir));
     testCase.verifyTrue(isfile(V.Bench.ScenePath));
     testCase.verifyEqual(V.Ts, 0.05);
-    testCase.verifyTrue(ismember(V.Detector, {'yolop', 'cnn', 'classic'}));
+    testCase.verifyTrue(ismember(V.Detector, lka_detector_create('list')));
 end

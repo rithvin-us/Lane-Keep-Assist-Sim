@@ -12,7 +12,7 @@ function [ok, msg] = lka_skeleton_compile(laneSource)
     run(fullfile(root, 'config', 'startup.m'));
     addpath(fullfile(root, 'models'), fullfile(skel, 'Models'), fullfile(skel, 'SupportingFunctions'));
     evalin('base', 'lkaProfile = ''skeleton''; lka_controller_params; create_lka_buses;');
-    evalin('base', sprintf('LKA_LANE_SOURCE = %d; LKA.Vision.Detector = ''classic'';', laneSource));
+    evalin('base', sprintf('LKA_LANE_SOURCE = %d; LKA.Vision.Detector = ''mobilenet'';', laneSource));
     mdl = 'aBaja2026';
     if bdIsLoaded(mdl), close_system(mdl, 0); end
     load_system(fullfile(skel, 'Models', [mdl '.slx']));

@@ -7,7 +7,7 @@ function out = run_lka_pick_video(varargin)
 %   out = run_lka_pick_video('CameraHeight', 1.05, 'HFovDeg', 66)
 %
 % For team members new to MATLAB: no paths or options to type. The chosen video is run
-% through run_lka_on_video (Camera='auto' unless given) into test_res/<video name>/,
+% through run_lka_on_video (Camera='auto' unless given) into test_res/mobilenet/<video name>/,
 % then the overview figure opens and, on Windows, the annotated video plays. The result
 % struct is returned (empty when the dialog is cancelled).
 
@@ -20,7 +20,7 @@ function out = run_lka_pick_video(varargin)
         return
     end
     [~, name] = fileparts(file);
-    outDir = fullfile(root, 'test_res', name);
+    outDir = fullfile(root, 'test_res', 'mobilenet', name);
     args = varargin;
     names = lower(string(args(1:2:end)));
     if ~any(names == "camera"), args = [args, {'Camera', 'auto'}]; end
